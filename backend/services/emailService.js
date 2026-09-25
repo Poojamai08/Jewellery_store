@@ -3,11 +3,17 @@ const nodemailer = require("nodemailer");
 const transporter = nodemailer.createTransport({
     host: process.env.MAIL_HOST,
     port: Number(process.env.MAIL_PORT),
-    secure: false,
+    secure: Number(process.env.MAIL_PORT) === 465,
+
     auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASSWORD,
     },
+
+    // Prevent the order API from waiting too long for SMTP
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 5000,
 });
 
 async function sendOrderConfirmationEmail(order) {
@@ -185,7 +191,9 @@ async function sendOrderConfirmationEmail(order) {
                                 font-size:13px;
                             ">
                                 <span>Subtotal</span>
-                                <span>₹${Number(order.subtotal).toLocaleString("en-IN")}</span>
+                                <span>
+                                    ₹${Number(order.subtotal).toLocaleString("en-IN")}
+                                </span>
                             </div>
 
                             <div style="

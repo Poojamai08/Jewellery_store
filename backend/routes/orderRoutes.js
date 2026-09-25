@@ -22,9 +22,15 @@ router.post("/", async (req, res) => {
             });
         }
 
-        // Calculate subtotal
+        // ==================================================
+        // CALCULATE TOTAL
+        // ==================================================
+
         const subtotal = items.reduce((total, item) => {
-            return total + Number(item.price) * Number(item.quantity);
+            return (
+                total +
+                Number(item.price) * Number(item.quantity)
+            );
         }, 0);
 
         const shipping = 0;
@@ -33,13 +39,12 @@ router.post("/", async (req, res) => {
         const orderNumber = `AUR-${Date.now()}`;
 
         // ==================================================
-        // TRANSACTION
-        // Create order + reduce product stock together
+        // CREATE ORDER + REDUCE STOCK
         // ==================================================
 
         const order = await prisma.$transaction(async (tx) => {
 
-            // Check stock for every product
+            // Check stock
             for (const item of items) {
                 const productId = Number(
                     item.productId || item.id
@@ -87,7 +92,9 @@ router.post("/", async (req, res) => {
                     shipping,
                     total,
 
-                    paymentMethod: paymentMethod || "COD",
+                    paymentMethod:
+                        paymentMethod || "COD",
+
                     status: "CONFIRMED",
 
                     items: {
@@ -95,11 +102,19 @@ router.post("/", async (req, res) => {
                             productId: Number(
                                 item.productId || item.id
                             ),
+
                             productName:
-                                item.productName || item.name,
+                                item.productName ||
+                                item.name,
+
                             price: Number(item.price),
-                            quantity: Number(item.quantity),
-                            image: item.image || null,
+
+                            quantity: Number(
+                                item.quantity
+                            ),
+
+                            image:
+                                item.image || null,
                         })),
                     },
                 },
@@ -116,12 +131,15 @@ router.post("/", async (req, res) => {
                     item.productId || item.id
                 );
 
-                const quantity = Number(item.quantity);
+                const quantity = Number(
+                    item.quantity
+                );
 
                 await tx.product.update({
                     where: {
                         id: productId,
                     },
+
                     data: {
                         stock: {
                             decrement: quantity,
@@ -134,46 +152,45 @@ router.post("/", async (req, res) => {
         });
 
         // ==================================================
-        // SEND ORDER CONFIRMATION EMAIL
+        // SEND EMAIL WITHOUT BLOCKING ORDER RESPONSE
         // ==================================================
 
-        try {
-            await sendOrderConfirmationEmail(order);
-
-            console.log(
-                `Order confirmation email sent to ${order.customer.email}`
-            );
-        } catch (emailError) {
-            console.error(
-                "Order Confirmation Email Error:",
-                emailError
-            );
-
-            // Important:
-            // Do NOT fail the order if email fails.
-            // The order has already been successfully saved.
-        }
+        console.log(
+            `Order ${order.orderNumber} created successfully. Email notification skipped.`
+        );
 
         // ==================================================
-        // SUCCESS RESPONSE
+        // RETURN RESPONSE IMMEDIATELY
         // ==================================================
 
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
+
             message: "Order created successfully",
+
             order: {
                 id: order.id,
-                orderNumber: order.orderNumber,
-                total: order.total,
-                status: order.status,
+
+                orderNumber:
+                    order.orderNumber,
+
+                total:
+                    order.total,
+
+                status:
+                    order.status,
             },
         });
 
     } catch (error) {
-        console.error("Create Order Error:", error);
+        console.error(
+            "Create Order Error:",
+            error
+        );
 
-        res.status(400).json({
+        return res.status(400).json({
             success: false,
+
             message:
                 error.message ||
                 "Failed to create order",
@@ -185,77 +202,94 @@ router.post("/", async (req, res) => {
 // ADMIN - GET ALL ORDERS
 // ======================================================
 
-router.get("/admin", adminAuth, async (req, res) => {
-    try {
-        const orders = await prisma.order.findMany({
-            orderBy: {
-                createdAt: "desc",
-            },
+router.get(
+    "/admin",
+    adminAuth,
+    async (req, res) => {
+        try {
+            const orders =
+                await prisma.order.findMany({
+                    orderBy: {
+                        createdAt: "desc",
+                    },
 
-            include: {
-                customer: true,
-                items: true,
-            },
-        });
+                    include: {
+                        customer: true,
+                        items: true,
+                    },
+                });
 
-        res.json({
-            success: true,
-            orders,
-        });
+            return res.json({
+                success: true,
+                orders,
+            });
 
-    } catch (error) {
-        console.error("Admin Orders Error:", error);
+        } catch (error) {
+            console.error(
+                "Admin Orders Error:",
+                error
+            );
 
-        res.status(500).json({
-            success: false,
-            message: "Failed to fetch orders",
-        });
+            return res.status(500).json({
+                success: false,
+                message:
+                    "Failed to fetch orders",
+            });
+        }
     }
-});
+);
 
 // ======================================================
 // ADMIN - GET SINGLE ORDER
 // ======================================================
 
-router.get("/admin/:id", adminAuth, async (req, res) => {
-    try {
-        const orderId = Number(req.params.id);
+router.get(
+    "/admin/:id",
+    adminAuth,
+    async (req, res) => {
+        try {
+            const orderId =
+                Number(req.params.id);
 
-        const order = await prisma.order.findUnique({
-            where: {
-                id: orderId,
-            },
+            const order =
+                await prisma.order.findUnique({
+                    where: {
+                        id: orderId,
+                    },
 
-            include: {
-                customer: true,
-                items: true,
-            },
-        });
+                    include: {
+                        customer: true,
+                        items: true,
+                    },
+                });
 
-        if (!order) {
-            return res.status(404).json({
+            if (!order) {
+                return res.status(404).json({
+                    success: false,
+                    message:
+                        "Order not found",
+                });
+            }
+
+            return res.json({
+                success: true,
+                order,
+            });
+
+        } catch (error) {
+            console.error(
+                "Admin Order Details Error:",
+                error
+            );
+
+            return res.status(500).json({
                 success: false,
-                message: "Order not found",
+                message:
+                    "Failed to fetch order",
             });
         }
-
-        res.json({
-            success: true,
-            order,
-        });
-
-    } catch (error) {
-        console.error(
-            "Admin Order Details Error:",
-            error
-        );
-
-        res.status(500).json({
-            success: false,
-            message: "Failed to fetch order",
-        });
     }
-});
+);
 
 // ======================================================
 // ADMIN - UPDATE ORDER STATUS
@@ -266,7 +300,9 @@ router.put(
     adminAuth,
     async (req, res) => {
         try {
-            const orderId = Number(req.params.id);
+            const orderId =
+                Number(req.params.id);
+
             const { status } = req.body;
 
             const allowedStatuses = [
@@ -277,10 +313,13 @@ router.put(
                 "CANCELLED",
             ];
 
-            if (!allowedStatuses.includes(status)) {
+            if (
+                !allowedStatuses.includes(status)
+            ) {
                 return res.status(400).json({
                     success: false,
-                    message: "Invalid order status",
+                    message:
+                        "Invalid order status",
                 });
             }
 
@@ -294,7 +333,8 @@ router.put(
             if (!existingOrder) {
                 return res.status(404).json({
                     success: false,
-                    message: "Order not found",
+                    message:
+                        "Order not found",
                 });
             }
 
@@ -303,15 +343,18 @@ router.put(
                     where: {
                         id: orderId,
                     },
+
                     data: {
                         status,
                     },
                 });
 
-            res.json({
+            return res.json({
                 success: true,
+
                 message:
                     "Order status updated successfully",
+
                 order,
             });
 
@@ -321,8 +364,9 @@ router.put(
                 error
             );
 
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
+
                 message:
                     "Failed to update order status",
             });
@@ -331,3 +375,4 @@ router.put(
 );
 
 module.exports = router;
+
