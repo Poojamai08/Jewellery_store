@@ -40,6 +40,52 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
+// ===============================
+// LIVE GOLD & SILVER RATES
+// ===============================
+
+// ===============================
+// LIVE GOLD & SILVER RATES
+// ===============================
+
+app.get("/api/rates", async (req, res) => {
+  try {
+    const response = await fetch(
+      "https://api.oropocket.com/public/prices"
+    );
+
+    if (!response.ok) {
+      throw new Error(`OroPocket API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    const gold = result?.data?.gold?.buy;
+    const silver = result?.data?.silver?.buy;
+
+    if (gold == null || silver == null) {
+      throw new Error("Gold or silver rate missing");
+    }
+
+    res.json({
+      gold,
+      silver,
+      currency: "INR",
+      unit: "gram",
+      timestamp: result?.data?.timestamp || null,
+    });
+
+  } catch (error) {
+    console.error("Metal rate API error:", error);
+
+    res.status(500).json({
+      gold: null,
+      silver: null,
+      message: "Unable to fetch live metal rates",
+    });
+  }
+});
+
 // Order routes
 app.use("/api/orders", orderRoutes);
 app.use("/api/products", productRoutes);

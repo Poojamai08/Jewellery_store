@@ -1,6 +1,34 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 function Home() {
+  /* =========================================
+     HERO IMAGES
+     These are separate from Shop/Product images
+  ========================================= */
+
+  const heroImages = [
+    "https://images.unsplash.com/photo-1511745564573-fec5d8b7e907?auto=format&fit=crop&w=2200&q=90",
+    "https://images.unsplash.com/photo-1603561596112-0a132b757442?auto=format&fit=crop&w=2200&q=90",
+    "https://images.unsplash.com/photo-1581000217146-03f3a628d19a?auto=format&fit=crop&w=2200&q=90",
+    "https://images.unsplash.com/photo-1603970402494-f97dac5a9b53?auto=format&fit=crop&w=2200&q=90",
+  ];
+
+  const [heroImage, setHeroImage] = useState(heroImages[0]);
+
+  /* =========================================
+     LIVE METAL RATES
+  ========================================= */
+
+  const [goldRate, setGoldRate] = useState(null);
+  const [silverRate, setSilverRate] = useState(null);
+  const [rateLoading, setRateLoading] = useState(true);
+
+  /* =========================================
+     SHOP CATEGORIES
+     These images remain separate from HERO
+  ========================================= */
+
   const categories = [
     {
       name: "Necklaces",
@@ -28,16 +56,80 @@ function Home() {
     },
   ];
 
+  /* =========================================
+     AUTOMATIC HERO IMAGE CHANGE
+     Every 5 seconds
+  ========================================= */
+
+  useEffect(() => {
+    const imageInterval = setInterval(() => {
+      setHeroImage((currentImage) => {
+        const currentIndex = heroImages.indexOf(currentImage);
+
+        const nextIndex =
+          currentIndex === -1
+            ? 0
+            : (currentIndex + 1) % heroImages.length;
+
+        return heroImages[nextIndex];
+      });
+    }, 5000);
+
+    return () => clearInterval(imageInterval);
+  }, []);
+
+  /* =========================================
+     FETCH GOLD & SILVER RATES
+  ========================================= */
+
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        setRateLoading(true);
+
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/rates`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch metal rates");
+        }
+
+        const data = await response.json();
+
+        setGoldRate(data.gold);
+        setSilverRate(data.silver);
+      } catch (error) {
+        console.error("Metal rate fetching error:", error);
+      } finally {
+        setRateLoading(false);
+      }
+    };
+
+    fetchRates();
+
+    // Refresh rates every 5 minutes
+    const rateInterval = setInterval(
+      fetchRates,
+      5 * 60 * 1000
+    );
+
+    return () => clearInterval(rateInterval);
+  }, []);
+
   return (
     <div className="bg-[#f8f6f1] text-[#171717]">
 
-      {/* HERO */}
+      {/* =========================================
+          HERO
+      ========================================= */}
+
       <section className="relative min-h-[calc(100vh-100px)] overflow-hidden bg-black">
 
         <img
-          src="https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=2200&q=90"
+          src={heroImage}
           alt="Aurelia luxury jewellery collection"
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000"
         />
 
         <div className="absolute inset-0 bg-black/45" />
@@ -47,18 +139,27 @@ function Home() {
           <div className="max-w-3xl text-white">
 
             <div className="mb-7 flex items-center gap-4">
+
               <span className="h-px w-12 bg-[#d2b06d]" />
+
               <span className="text-[10px] font-medium uppercase tracking-[0.45em] text-[#e4d2a7]">
                 The Aurelia Collection
               </span>
+
             </div>
 
             <h1 className="max-w-3xl font-serif text-5xl font-medium leading-[0.95] tracking-[-0.02em] sm:text-6xl md:text-7xl lg:text-[92px]">
+
               Jewellery
               <br />
+
               with a lasting
               <br />
-              <span className="italic text-[#e1c994]">presence.</span>
+
+              <span className="italic text-[#e1c994]">
+                presence.
+              </span>
+
             </h1>
 
             <p className="mt-8 max-w-lg text-sm leading-7 text-white/75 sm:text-base">
@@ -76,10 +177,11 @@ function Home() {
               </Link>
 
               <Link
-                to="/collections"
+                to="/shop"
                 className="group inline-flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-white"
               >
                 Explore Collection
+
                 <span className="h-px w-8 bg-white transition-all duration-300 group-hover:w-12" />
               </Link>
 
@@ -90,32 +192,45 @@ function Home() {
         </div>
 
         <div className="absolute bottom-8 right-8 hidden items-center gap-3 text-white/60 lg:flex">
+
           <span className="text-[9px] uppercase tracking-[0.3em]">
             Scroll to discover
           </span>
+
           <span className="h-px w-8 bg-white/40" />
+
         </div>
 
       </section>
 
+      {/* =========================================
+          INTRO
+      ========================================= */}
 
-      {/* INTRO */}
       <section className="px-6 py-24 sm:px-10 lg:px-16 lg:py-32">
 
         <div className="mx-auto grid max-w-[1300px] gap-12 lg:grid-cols-[1fr_2fr] lg:items-end">
 
           <div>
+
             <p className="text-[10px] font-semibold uppercase tracking-[0.4em] text-[#a9874a]">
               A new expression of luxury
             </p>
 
             <div className="mt-6 h-px w-14 bg-[#c6a15b]" />
+
           </div>
 
           <div>
+
             <h2 className="max-w-4xl font-serif text-4xl leading-[1.12] sm:text-5xl lg:text-6xl">
+
               Pieces created for the moments
-              <span className="italic text-[#a9874a]"> that matter.</span>
+
+              <span className="italic text-[#a9874a]">
+                {" "}that matter.
+              </span>
+
             </h2>
 
             <p className="mt-7 max-w-2xl text-sm leading-8 text-[#66615a]">
@@ -123,6 +238,7 @@ function Home() {
               details and modern craftsmanship to create jewellery that
               feels personal, elegant and enduring.
             </p>
+
           </div>
 
         </div>
@@ -130,7 +246,10 @@ function Home() {
       </section>
 
 
-      {/* CATEGORY GRID */}
+      {/* =========================================
+          CATEGORY GRID
+      ========================================= */}
+
       <section className="border-y border-[#e5dfd5] bg-[#f3efe7] px-6 py-20 sm:px-10 lg:px-16 lg:py-28">
 
         <div className="mx-auto max-w-[1300px]">
@@ -138,6 +257,7 @@ function Home() {
           <div className="mb-12 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
 
             <div>
+
               <p className="text-[10px] font-semibold uppercase tracking-[0.4em] text-[#a9874a]">
                 Collections
               </p>
@@ -145,6 +265,7 @@ function Home() {
               <h2 className="mt-4 font-serif text-4xl sm:text-5xl">
                 Find your signature
               </h2>
+
             </div>
 
             <Link
@@ -152,7 +273,9 @@ function Home() {
               className="group flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.25em]"
             >
               View all
+
               <span className="h-px w-7 bg-black transition-all duration-300 group-hover:w-11" />
+
             </Link>
 
           </div>
@@ -161,6 +284,7 @@ function Home() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
             {categories.map((category) => (
+
               <Link
                 key={category.name}
                 to="/shop"
@@ -186,13 +310,17 @@ function Home() {
                   </h3>
 
                   <div className="mt-4 flex items-center gap-3 text-[9px] uppercase tracking-[0.25em]">
+
                     Discover
+
                     <span className="h-px w-6 bg-white transition-all duration-300 group-hover:w-10" />
+
                   </div>
 
                 </div>
 
               </Link>
+
             ))}
 
           </div>
@@ -202,7 +330,10 @@ function Home() {
       </section>
 
 
-      {/* EDITORIAL STORY */}
+      {/* =========================================
+          EDITORIAL STORY
+      ========================================= */}
+
       <section className="px-6 py-24 sm:px-10 lg:px-16 lg:py-32">
 
         <div className="mx-auto grid max-w-[1300px] overflow-hidden bg-[#171717] lg:grid-cols-2">
@@ -229,11 +360,15 @@ function Home() {
               </p>
 
               <h2 className="mt-6 font-serif text-4xl leading-tight sm:text-5xl">
+
                 Made slowly.
+
                 <br />
+
                 <span className="italic text-[#d2b06d]">
                   Made to last.
                 </span>
+
               </h2>
 
               <p className="mt-7 text-sm leading-8 text-white/65">
@@ -247,8 +382,11 @@ function Home() {
                 to="/about"
                 className="group mt-9 inline-flex items-center gap-4 border-b border-white/30 pb-3 text-[10px] font-semibold uppercase tracking-[0.25em] transition hover:border-[#d2b06d]"
               >
+
                 Discover our story
+
                 <span className="h-px w-7 bg-[#d2b06d] transition-all duration-300 group-hover:w-11" />
+
               </Link>
 
             </div>
@@ -260,7 +398,10 @@ function Home() {
       </section>
 
 
-      {/* STATEMENT */}
+      {/* =========================================
+          STATEMENT
+      ========================================= */}
+
       <section className="border-y border-[#e5dfd5] px-6 py-24 text-center sm:px-10 lg:py-32">
 
         <div className="mx-auto max-w-4xl">
@@ -270,10 +411,17 @@ function Home() {
           </span>
 
           <h2 className="mt-2 font-serif text-3xl leading-[1.25] sm:text-4xl lg:text-5xl">
+
             The most beautiful jewellery
+
             <br className="hidden sm:block" />
+
             is the kind that becomes
-            <span className="italic text-[#a9874a]"> yours.</span>
+
+            <span className="italic text-[#a9874a]">
+              {" "}yours.
+            </span>
+
           </h2>
 
           <div className="mx-auto mt-8 h-px w-10 bg-[#c6a15b]" />
@@ -287,7 +435,10 @@ function Home() {
       </section>
 
 
-      {/* NEWSLETTER */}
+      {/* =========================================
+          NEWSLETTER
+      ========================================= */}
+
       <section className="bg-[#e9e3d9] px-6 py-20 sm:px-10 lg:px-16 lg:py-28">
 
         <div className="mx-auto grid max-w-[1100px] gap-10 lg:grid-cols-2 lg:items-end">
@@ -339,4 +490,3 @@ function Home() {
 }
 
 export default Home;
-
