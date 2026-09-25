@@ -155,9 +155,19 @@ router.post("/", async (req, res) => {
         // SEND EMAIL WITHOUT BLOCKING ORDER RESPONSE
         // ==================================================
 
-        console.log(
-            `Order ${order.orderNumber} created successfully. Email notification skipped.`
-        );
+        // Send confirmation email in the background
+        sendOrderConfirmationEmail(order)
+            .then(() => {
+                console.log(
+                    `Order confirmation email sent for ${order.orderNumber}`
+                );
+            })
+            .catch((error) => {
+                console.error(
+                    `Order confirmation email failed for ${order.orderNumber}:`,
+                    error.message
+                );
+            });
 
         // ==================================================
         // RETURN RESPONSE IMMEDIATELY
