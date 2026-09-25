@@ -7,12 +7,19 @@ function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
 
+  // ======================================================
   // LIVE METAL RATES
+  // ======================================================
+
   const [goldRate, setGoldRate] = useState(null);
   const [silverRate, setSilverRate] = useState(null);
 
   const location = useLocation();
   const navigate = useNavigate();
+
+  // ======================================================
+  // CART
+  // ======================================================
 
   const cartItems = useSelector(
     (state) => state.cart.items
@@ -24,19 +31,35 @@ function Navbar() {
     0
   );
 
+  // ======================================================
+  // WISHLIST
+  // ======================================================
+
   const wishlistItems = useSelector(
     (state) => state.wishlist.items
   );
 
   const wishlistCount = wishlistItems.length;
 
+  // ======================================================
+  // ACTIVE NAVIGATION
+  // ======================================================
+
   const isActive = (path) => {
     return location.pathname === path;
   };
 
+  // ======================================================
+  // CLOSE MOBILE MENU
+  // ======================================================
+
   const closeMenu = () => {
     setMenuOpen(false);
   };
+
+  // ======================================================
+  // SEARCH
+  // ======================================================
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -49,7 +72,10 @@ function Navbar() {
       return;
     }
 
-    navigate(`/shop?search=${encodeURIComponent(query)}`);
+    navigate(
+      `/shop?search=${encodeURIComponent(query)}`
+    );
+
     setSearchOpen(false);
   };
 
@@ -58,9 +84,9 @@ function Navbar() {
     setMenuOpen(false);
   };
 
-  // ==========================================
+  // ======================================================
   // FETCH LIVE GOLD & SILVER RATES
-  // ==========================================
+  // ======================================================
 
   useEffect(() => {
     const fetchRates = async () => {
@@ -70,7 +96,9 @@ function Navbar() {
         );
 
         if (!response.ok) {
-          throw new Error("Failed to fetch metal rates");
+          throw new Error(
+            "Failed to fetch metal rates"
+          );
         }
 
         const data = await response.json();
@@ -85,54 +113,186 @@ function Navbar() {
       }
     };
 
+    // Initial fetch
     fetchRates();
 
-    // Refresh rates every 5 minutes
+    // Refresh every 5 minutes
     const rateInterval = setInterval(
       fetchRates,
       5 * 60 * 1000
     );
 
-    return () => clearInterval(rateInterval);
+    return () => {
+      clearInterval(rateInterval);
+    };
   }, []);
 
-  // ==========================================
+  // ======================================================
+  // FORMAT RATE
+  // ======================================================
+
+  const formatRate = (rate) => {
+    if (
+      rate === null ||
+      rate === undefined ||
+      Number.isNaN(Number(rate))
+    ) {
+      return "Loading...";
+    }
+
+    return `₹${Number(rate).toLocaleString(
+      "en-IN",
+      {
+        maximumFractionDigits: 2,
+      }
+    )}/g`;
+  };
+
+  // ======================================================
+  // GOLD PURITY RATES
+  // ======================================================
+
+  // API gold rate is treated as 24K gold rate.
+
+  const gold24K = goldRate;
+
+  const gold22K =
+    goldRate !== null
+      ? goldRate * (22 / 24)
+      : null;
+
+  const gold18K =
+    goldRate !== null
+      ? goldRate * (18 / 24)
+      : null;
+
+  const gold14K =
+    goldRate !== null
+      ? goldRate * (14 / 24)
+      : null;
+
+  // ======================================================
+  // SILVER PURITY RATES
+  // ======================================================
+
+  // API silver rate is treated as pure silver rate.
+
+  const pureSilver = silverRate;
+
+  // Sterling Silver = 92.5% pure silver
+
+  const sterlingSilver =
+    silverRate !== null
+      ? silverRate * 0.925
+      : null;
+
+  // ======================================================
   // TICKER CONTENT
-  // ==========================================
+  // ======================================================
 
   const tickerContent = (
     <>
+      {/* MARKET UPDATE */}
+
       <span className="text-[9px] uppercase tracking-[0.18em] text-[#d6d0c6]">
         AURELIA MARKET UPDATE
       </span>
 
+      {/* 24K GOLD */}
+
       <span className="text-[9px] uppercase tracking-[0.15em]">
-        Gold
+        24K Gold
+
         <span className="ml-2 text-[#c9a96e]">
-          {goldRate !== null
-            ? `₹${Number(goldRate).toLocaleString("en-IN")}/g`
-            : "Loading..."}
+          {formatRate(gold24K)}
         </span>
       </span>
 
-      <span className="text-[#5b5b5b]">•</span>
+      <span className="text-[#5b5b5b]">
+        •
+      </span>
+
+      {/* 22K GOLD */}
 
       <span className="text-[9px] uppercase tracking-[0.15em]">
-        Silver
+        22K Gold
+
         <span className="ml-2 text-[#c9a96e]">
-          {silverRate !== null
-            ? `₹${Number(silverRate).toLocaleString("en-IN")}/g`
-            : "Loading..."}
+          {formatRate(gold22K)}
         </span>
       </span>
 
-      <span className="text-[#5b5b5b]">•</span>
+      <span className="text-[#5b5b5b]">
+        •
+      </span>
+
+      {/* 18K GOLD */}
+
+      <span className="text-[9px] uppercase tracking-[0.15em]">
+        18K Gold
+
+        <span className="ml-2 text-[#c9a96e]">
+          {formatRate(gold18K)}
+        </span>
+      </span>
+
+      <span className="text-[#5b5b5b]">
+        •
+      </span>
+
+      {/* 14K GOLD */}
+
+      <span className="text-[9px] uppercase tracking-[0.15em]">
+        14K Gold
+
+        <span className="ml-2 text-[#c9a96e]">
+          {formatRate(gold14K)}
+        </span>
+      </span>
+
+      <span className="text-[#5b5b5b]">
+        •
+      </span>
+
+      {/* PURE SILVER */}
+
+      <span className="text-[9px] uppercase tracking-[0.15em]">
+        Pure Silver
+
+        <span className="ml-2 text-[#c9a96e]">
+          {formatRate(pureSilver)}
+        </span>
+      </span>
+
+      <span className="text-[#5b5b5b]">
+        •
+      </span>
+
+      {/* STERLING SILVER */}
+
+      <span className="text-[9px] uppercase tracking-[0.15em]">
+        Sterling Silver
+
+        <span className="ml-2 text-[#c9a96e]">
+          {formatRate(sterlingSilver)}
+        </span>
+      </span>
+
+      <span className="text-[#5b5b5b]">
+        •
+      </span>
+
+      {/* DISCLAIMER */}
 
       <span className="text-[9px] uppercase tracking-[0.15em] text-[#aaa39a]">
         Indicative market rate
       </span>
     </>
   );
+
+  // ======================================================
+  // RETURN
+  // ======================================================
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#e6e1d7] bg-[#f8f6f1]/95 backdrop-blur-md">
@@ -173,7 +333,9 @@ function Navbar() {
       {/* ================================================= */}
 
       <div className="hidden border-b border-[#e6e1d7] bg-[#111111] py-2 text-center text-[9px] uppercase tracking-[0.3em] text-white sm:block">
+
         Complimentary shipping on orders above ₹10,000
+
       </div>
 
       {/* ================================================= */}
@@ -187,10 +349,13 @@ function Navbar() {
           {/* MOBILE MENU BUTTON */}
 
           <button
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={() =>
+              setMenuOpen(!menuOpen)
+            }
             className="flex h-10 w-10 items-center justify-center lg:hidden"
             aria-label="Toggle menu"
           >
+
             <div className="space-y-1.5">
 
               <span
@@ -203,12 +368,16 @@ function Navbar() {
 
               <span
                 className={`block h-px w-5 bg-[#111111] transition ${
-                  menuOpen ? "-rotate-45" : ""
+                  menuOpen
+                    ? "-rotate-45"
+                    : ""
                 }`}
               />
 
             </div>
+
           </button>
+
 
           {/* DESKTOP NAVIGATION */}
 
@@ -225,6 +394,7 @@ function Navbar() {
               Home
             </Link>
 
+
             <Link
               to="/shop"
               className={`text-[10px] uppercase tracking-[0.2em] transition ${
@@ -236,12 +406,14 @@ function Navbar() {
               Shop
             </Link>
 
+
             <Link
               to="/shop"
               className="text-[10px] uppercase tracking-[0.2em] text-[#333333] transition hover:text-[#a9874a]"
             >
               Collections
             </Link>
+
 
             <Link
               to="/about"
@@ -252,12 +424,14 @@ function Navbar() {
 
           </nav>
 
+
           {/* LOGO */}
 
           <Link
             to="/"
             className="absolute left-1/2 -translate-x-1/2 text-center"
           >
+
             <span className="block font-serif text-[25px] tracking-[0.28em] text-[#111111] sm:text-[29px]">
               AURELIA
             </span>
@@ -265,7 +439,9 @@ function Navbar() {
             <span className="mt-0.5 block text-[7px] uppercase tracking-[0.48em] text-[#a9874a]">
               Fine Jewellery
             </span>
+
           </Link>
+
 
           {/* RIGHT ACTIONS */}
 
@@ -278,6 +454,7 @@ function Navbar() {
               className="flex h-10 w-10 items-center justify-center transition hover:text-[#a9874a]"
               aria-label="Search"
             >
+
               <svg
                 width="18"
                 height="18"
@@ -286,6 +463,7 @@ function Navbar() {
                 stroke="currentColor"
                 strokeWidth="1.5"
               >
+
                 <circle
                   cx="11"
                   cy="11"
@@ -293,8 +471,11 @@ function Navbar() {
                 />
 
                 <path d="M20 20L16.5 16.5" />
+
               </svg>
+
             </button>
+
 
             {/* WISHLIST */}
 
@@ -303,6 +484,7 @@ function Navbar() {
               className="relative hidden h-10 w-10 items-center justify-center transition hover:text-[#a9874a] sm:flex"
               aria-label="Wishlist"
             >
+
               <svg
                 width="18"
                 height="18"
@@ -311,15 +493,20 @@ function Navbar() {
                 stroke="currentColor"
                 strokeWidth="1.5"
               >
+
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" />
+
               </svg>
+
 
               {wishlistCount > 0 && (
                 <span className="absolute right-0 top-0 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[#111111] px-1 text-[8px] text-white">
                   {wishlistCount}
                 </span>
               )}
+
             </Link>
+
 
             {/* CART */}
 
@@ -328,6 +515,7 @@ function Navbar() {
               className="relative flex h-10 w-10 items-center justify-center transition hover:text-[#a9874a]"
               aria-label="Cart"
             >
+
               <svg
                 width="19"
                 height="19"
@@ -336,15 +524,20 @@ function Navbar() {
                 stroke="currentColor"
                 strokeWidth="1.5"
               >
+
                 <path d="M6 8h12l1 13H5L6 8Z" />
+
                 <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+
               </svg>
+
 
               {cartCount > 0 && (
                 <span className="absolute right-0 top-0 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[#111111] px-1 text-[8px] text-white">
                   {cartCount}
                 </span>
               )}
+
             </Link>
 
           </div>
@@ -352,6 +545,7 @@ function Navbar() {
         </div>
 
       </div>
+
 
       {/* ================================================= */}
       {/* SEARCH PANEL */}
@@ -364,6 +558,7 @@ function Navbar() {
             : "max-h-0 opacity-0"
         }`}
       >
+
         <div className="mx-auto max-w-[900px] px-5 py-6 sm:px-8">
 
           <form
@@ -380,6 +575,7 @@ function Navbar() {
                 stroke="currentColor"
                 strokeWidth="1.5"
               >
+
                 <circle
                   cx="11"
                   cy="11"
@@ -387,7 +583,9 @@ function Navbar() {
                 />
 
                 <path d="M20 20L16.5 16.5" />
+
               </svg>
+
 
               <input
                 autoFocus
@@ -402,12 +600,14 @@ function Navbar() {
 
             </div>
 
+
             <button
               type="submit"
               className="bg-[#171717] px-6 py-3 text-[9px] font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-[#a9874a]"
             >
               Search
             </button>
+
 
             <button
               type="button"
@@ -423,7 +623,9 @@ function Navbar() {
           </form>
 
         </div>
+
       </div>
+
 
       {/* ================================================= */}
       {/* MOBILE MENU */}
@@ -436,6 +638,7 @@ function Navbar() {
             : "max-h-0 opacity-0"
         }`}
       >
+
         <nav className="mx-auto max-w-[1400px] px-5 py-5">
 
           <div className="flex flex-col">
@@ -448,6 +651,7 @@ function Navbar() {
               Home
             </Link>
 
+
             <Link
               to="/shop"
               onClick={closeMenu}
@@ -455,6 +659,7 @@ function Navbar() {
             >
               Shop
             </Link>
+
 
             <Link
               to="/shop"
@@ -464,6 +669,7 @@ function Navbar() {
               Collections
             </Link>
 
+
             <Link
               to="/about"
               onClick={closeMenu}
@@ -472,6 +678,7 @@ function Navbar() {
               About
             </Link>
 
+
             <button
               onClick={openSearch}
               className="border-b border-[#e6e1d7] py-4 text-left text-[11px] uppercase tracking-[0.2em]"
@@ -479,12 +686,14 @@ function Navbar() {
               Search
             </button>
 
+
             <Link
               to="/cart"
               onClick={closeMenu}
               className="py-4 text-[11px] uppercase tracking-[0.2em]"
             >
               Cart
+
               {cartCount > 0 &&
                 ` (${cartCount})`}
             </Link>
@@ -492,6 +701,7 @@ function Navbar() {
           </div>
 
         </nav>
+
       </div>
 
     </header>
