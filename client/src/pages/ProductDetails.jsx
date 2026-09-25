@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useDispatch,useSelector  } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { toggleWishlist } from "../store/wishlistSlice";
 import { addToCart } from "../store/cartSlice";
 
@@ -29,7 +29,7 @@ function ProductDetails() {
                 setError("");
 
                 const response = await fetch(
-                    `http://localhost:5000/api/products/${id}`
+                    `${import.meta.env.VITE_API_URL}/api/products/${id}`
                 );
 
                 const data = await response.json();
@@ -192,15 +192,16 @@ function ProductDetails() {
                                     onClick={() =>
                                         setSelectedImage(image)
                                     }
-                                    aria-label={`View image ${index + 1}`}
-                                    className={`group relative h-20 w-16 shrink-0 overflow-hidden bg-[#eeeae3] transition sm:h-24 sm:w-[68px] ${selectedImage === image
-                                        ? "ring-1 ring-[#c6a15b]"
-                                        : "ring-1 ring-transparent hover:ring-[#d9d1c4]"
-                                        }`}
+                                    aria-label={`View image ${ index + 1}`}
+                                    className={`group relative h - 20 w - 16 shrink - 0 overflow - hidden bg - [#eeeae3] transition sm: h - 24 sm: w - [68px] ${
+                selectedImage === image
+                ? "ring-1 ring-[#c6a15b]"
+                : "ring-1 ring-transparent hover:ring-[#d9d1c4]"
+            } `}
                                 >
                                     <img
                                         src={image}
-                                        alt={`${product.name} ${index + 1}`}
+                                        alt={`${ product.name } ${ index + 1 } `}
                                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                                     />
 
@@ -216,10 +217,11 @@ function ProductDetails() {
                             <img
                                 src={selectedImage}
                                 alt={product.name}
-                                className={`h-full w-full object-cover transition duration-700 group-hover:scale-[1.025] ${isOutOfStock
-                                    ? "opacity-60"
-                                    : ""
-                                    }`}
+                                className={`h - full w - full object - cover transition duration - 700 group - hover: scale - [1.025] ${
+                isOutOfStock
+                    ? "opacity-60"
+                    : ""
+            } `}
                             />
 
                             {/* Sold Out */}
@@ -300,7 +302,7 @@ function ProductDetails() {
 
                                     <p className="mt-2 text-sm text-[#292722]">
                                         {product.weight
-                                            ? `${product.weight} g`
+                                            ? `${ product.weight } g`
                                             : "N/A"}
                                     </p>
                                 </div>
@@ -321,17 +323,18 @@ function ProductDetails() {
                                     </p>
 
                                     <p
-                                        className={`mt-2 text-sm ${isOutOfStock
-                                            ? "text-red-700"
-                                            : product.stock <= 3
-                                                ? "text-[#a9874a]"
-                                                : "text-[#292722]"
-                                            }`}
+                                        className={`mt - 2 text - sm ${
+                isOutOfStock
+                    ? "text-red-700"
+                    : product.stock <= 3
+                        ? "text-[#a9874a]"
+                        : "text-[#292722]"
+            } `}
                                     >
                                         {isOutOfStock
                                             ? "Out of stock"
                                             : product.stock <= 3
-                                                ? `Only ${product.stock} left`
+                                                ? `Only ${ product.stock } left`
                                                 : "In stock"}
                                     </p>
                                 </div>
@@ -391,10 +394,11 @@ function ProductDetails() {
                                         })
                                     )
                                 }
-                                className={`flex h-14 flex-1 items-center justify-center border px-5 text-[9px] font-semibold uppercase tracking-[0.22em] transition ${wishlist
-                                        ? "border-[#c6a15b] bg-[#f3efe7] text-[#a9874a]"
-                                        : "border-[#d6cfc4] text-[#555049] hover:border-[#171717] hover:text-[#171717]"
-                                    }`}
+                                className={`flex h - 14 flex - 1 items - center justify - center border px - 5 text - [9px] font - semibold uppercase tracking - [0.22em] transition ${
+                wishlist
+                    ? "border-[#c6a15b] bg-[#f3efe7] text-[#a9874a]"
+                    : "border-[#d6cfc4] text-[#555049] hover:border-[#171717] hover:text-[#171717]"
+            } `}
                             >
                                 <span className="mr-2 text-base">
                                     {wishlist ? "♥" : "♡"}

@@ -43,7 +43,7 @@ function AdminProductForm() {
                 setError("");
 
                 const response = await fetch(
-                    `http://localhost:5000/api/products/${id}`
+                    `${import.meta.env.VITE_API_URL}/api/products/${id}`
                 );
 
                 const data = await response.json();
@@ -138,8 +138,8 @@ function AdminProductForm() {
             };
 
             const url = isEditMode
-                ? `http://localhost:5000/api/products/${id}`
-                : "http://localhost:5000/api/products";
+                ? `${import.meta.env.VITE_API_URL}/api/products/${id}`
+                : `${import.meta.env.VITE_API_URL}/api/products`;
 
             const method = isEditMode
                 ? "PUT"

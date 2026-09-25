@@ -22,7 +22,7 @@ function AdminProducts() {
                 setError("");
 
                 const response = await fetch(
-                    "http://localhost:5000/api/products"
+                    `${import.meta.env.VITE_API_URL}/api/products`
                 );
 
                 const data = await response.json();
@@ -61,11 +61,11 @@ function AdminProducts() {
             );
 
             const response = await fetch(
-                `http://localhost:5000/api/products/${productId}`,
+                `${import.meta.env.VITE_API_URL}/api/products/${productId}`,
                 {
                     method: "DELETE",
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        Authorization: `Bearer ${ token }`,
                     },
                 }
             );
@@ -526,13 +526,13 @@ function AdminProducts() {
                                                     <div className="flex items-center gap-3">
 
                                                         <span
-                                                            className={`text-sm font-medium ${
-                                                                isOutOfStock
-                                                                    ? "text-red-600"
-                                                                    : isLowStock
-                                                                    ? "text-[#a9874a]"
-                                                                    : "text-[#292722]"
-                                                            }`}
+                                                            className={`text - sm font - medium ${
+                isOutOfStock
+                ? "text-red-600"
+                    : isLowStock
+                        ? "text-[#a9874a]"
+                        : "text-[#292722]"
+            }`}
                                                         >
                                                             {
                                                                 product.stock
@@ -568,7 +568,7 @@ function AdminProducts() {
                                                         <button
                                                             onClick={() =>
                                                                 navigate(
-                                                                    `/admin/products/edit/${product.id}`
+                                                                    `/ admin / products / edit / ${ product.id }`
                                                                 )
                                                             }
                                                             className="border border-[#d6d0c6] px-4 py-2.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#292722] transition duration-300 hover:border-[#a9874a] hover:text-[#a9874a]"

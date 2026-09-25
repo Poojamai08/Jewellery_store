@@ -22,7 +22,7 @@ function AdminOrders() {
                 setError("");
 
                 const response = await fetch(
-                    "http://localhost:5000/api/orders/admin",
+                    `${import.meta.env.VITE_API_URL}/api/orders/admin`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,

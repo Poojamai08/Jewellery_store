@@ -44,7 +44,7 @@ function Checkout() {
             setIsSubmitting(true);
 
             const response = await fetch(
-                "http://localhost:5000/api/orders",
+                `${import.meta.env.VITE_API_URL}/api/orders`,
                 {
                     method: "POST",
                     headers: {
@@ -89,7 +89,7 @@ function Checkout() {
 
             alert(
                 error.message ||
-                    "Unable to place order. Please try again."
+                "Unable to place order. Please try again."
             );
         } finally {
             setIsSubmitting(false);
