@@ -58,7 +58,10 @@ function Navbar() {
     setMenuOpen(false);
   };
 
+  // ==========================================
   // FETCH LIVE GOLD & SILVER RATES
+  // ==========================================
+
   useEffect(() => {
     const fetchRates = async () => {
       try {
@@ -84,7 +87,7 @@ function Navbar() {
 
     fetchRates();
 
-    // Refresh every 5 minutes
+    // Refresh rates every 5 minutes
     const rateInterval = setInterval(
       fetchRates,
       5 * 60 * 1000
@@ -93,6 +96,44 @@ function Navbar() {
     return () => clearInterval(rateInterval);
   }, []);
 
+  // ==========================================
+  // TICKER CONTENT
+  // ==========================================
+
+  const tickerContent = (
+    <>
+      <span className="text-[9px] uppercase tracking-[0.18em] text-[#d6d0c6]">
+        AURELIA MARKET UPDATE
+      </span>
+
+      <span className="text-[9px] uppercase tracking-[0.15em]">
+        Gold
+        <span className="ml-2 text-[#c9a96e]">
+          {goldRate !== null
+            ? `₹${Number(goldRate).toLocaleString("en-IN")}/g`
+            : "Loading..."}
+        </span>
+      </span>
+
+      <span className="text-[#5b5b5b]">•</span>
+
+      <span className="text-[9px] uppercase tracking-[0.15em]">
+        Silver
+        <span className="ml-2 text-[#c9a96e]">
+          {silverRate !== null
+            ? `₹${Number(silverRate).toLocaleString("en-IN")}/g`
+            : "Loading..."}
+        </span>
+      </span>
+
+      <span className="text-[#5b5b5b]">•</span>
+
+      <span className="text-[9px] uppercase tracking-[0.15em] text-[#aaa39a]">
+        Indicative market rate
+      </span>
+    </>
+  );
+
   return (
     <header className="sticky top-0 z-50 border-b border-[#e6e1d7] bg-[#f8f6f1]/95 backdrop-blur-md">
 
@@ -100,73 +141,26 @@ function Navbar() {
       {/* LIVE GOLD & SILVER TICKER */}
       {/* ================================================= */}
 
-      <div className="overflow-hidden border-b border-[#2b2b2b] bg-[#111111] text-white">
+      <div className="ticker-wrapper border-b border-[#2b2b2b] bg-[#111111] text-white">
 
-        <div className="relative flex h-[30px] items-center whitespace-nowrap">
+        <div className="relative flex h-[30px] items-center overflow-hidden whitespace-nowrap">
 
-          <div className="flex min-w-max animate-[ticker_25s_linear_infinite] items-center gap-12 px-6">
+          <div className="ticker-track flex min-w-max items-center">
 
-            <span className="text-[9px] uppercase tracking-[0.18em] text-[#d6d0c6]">
-              AURELIA MARKET UPDATE
-            </span>
+            {/* FIRST GROUP */}
 
-            <span className="text-[9px] uppercase tracking-[0.15em]">
-              Gold
-              <span className="ml-2 text-[#c9a96e]">
-                {goldRate !== null
-                  ? `₹${Number(goldRate).toLocaleString("en-IN")}/g`
-                  : "Loading..."}
-              </span>
-            </span>
+            <div className="flex items-center gap-12 px-6">
+              {tickerContent}
+            </div>
 
-            <span className="text-[#5b5b5b]">•</span>
+            {/* SECOND GROUP */}
 
-            <span className="text-[9px] uppercase tracking-[0.15em]">
-              Silver
-              <span className="ml-2 text-[#c9a96e]">
-                {silverRate !== null
-                  ? `₹${Number(silverRate).toLocaleString("en-IN")}/g`
-                  : "Loading..."}
-              </span>
-            </span>
-
-            <span className="text-[#5b5b5b]">•</span>
-
-            <span className="text-[9px] uppercase tracking-[0.15em] text-[#aaa39a]">
-              Indicative market rate
-            </span>
-
-            {/* DUPLICATE FOR CONTINUOUS SCROLL */}
-
-            <span className="text-[9px] uppercase tracking-[0.18em] text-[#d6d0c6]">
-              AURELIA MARKET UPDATE
-            </span>
-
-            <span className="text-[9px] uppercase tracking-[0.15em]">
-              Gold
-              <span className="ml-2 text-[#c9a96e]">
-                {goldRate !== null
-                  ? `₹${Number(goldRate).toLocaleString("en-IN")}/g`
-                  : "Loading..."}
-              </span>
-            </span>
-
-            <span className="text-[#5b5b5b]">•</span>
-
-            <span className="text-[9px] uppercase tracking-[0.15em]">
-              Silver
-              <span className="ml-2 text-[#c9a96e]">
-                {silverRate !== null
-                  ? `₹${Number(silverRate).toLocaleString("en-IN")}/g`
-                  : "Loading..."}
-              </span>
-            </span>
-
-            <span className="text-[#5b5b5b]">•</span>
-
-            <span className="text-[9px] uppercase tracking-[0.15em] text-[#aaa39a]">
-              Indicative market rate
-            </span>
+            <div
+              className="flex items-center gap-12 px-6"
+              aria-hidden="true"
+            >
+              {tickerContent}
+            </div>
 
           </div>
 
@@ -193,9 +187,7 @@ function Navbar() {
           {/* MOBILE MENU BUTTON */}
 
           <button
-            onClick={() =>
-              setMenuOpen(!menuOpen)
-            }
+            onClick={() => setMenuOpen(!menuOpen)}
             className="flex h-10 w-10 items-center justify-center lg:hidden"
             aria-label="Toggle menu"
           >
@@ -211,9 +203,7 @@ function Navbar() {
 
               <span
                 className={`block h-px w-5 bg-[#111111] transition ${
-                  menuOpen
-                    ? "-rotate-45"
-                    : ""
+                  menuOpen ? "-rotate-45" : ""
                 }`}
               />
 

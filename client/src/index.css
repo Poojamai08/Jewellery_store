@@ -14,3 +14,25 @@ body {
   background: #faf9f6;
   color: #222;
 }
+/* AURELIA LIVE RATE TICKER */
+
+.ticker-wrapper {
+  width: 100%;
+  overflow: hidden;
+}
+
+.ticker-track {
+  width: max-content;
+  animation: aureliaTicker 25s linear infinite;
+  will-change: transform;
+}
+
+@keyframes aureliaTicker {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
