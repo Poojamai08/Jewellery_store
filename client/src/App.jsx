@@ -17,6 +17,7 @@ import ReturnExchange from "./pages/ReturnExchange";
 import Contact from "./pages/Contact";
 import Wishlist from "./pages/Wishlist";
 import About from "./pages/About";
+import Collections from "./pages/Collections";
 import MainLayout from "./layouts/MainLayout";
 
 function App() {
@@ -120,6 +121,14 @@ function App() {
             </MainLayout>
           }
         />
+
+        <Route
+          path="/collections"
+          element={
+            <MainLayout>
+              <Collections />
+            </MainLayout>
+          } />
 
         {/* Admin Pages */}
 

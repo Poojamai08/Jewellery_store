@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 function Home() {
@@ -25,36 +25,20 @@ function Home() {
   const [rateLoading, setRateLoading] = useState(true);
 
   /* =========================================
-     SHOP CATEGORIES
-     These images remain separate from HERO
+     DYNAMIC SHOP PRODUCTS
   ========================================= */
 
-  const categories = [
-    {
-      name: "Necklaces",
-      subtitle: "Statement pieces",
-      image:
-        "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1200&q=85",
-    },
-    {
-      name: "Earrings",
-      subtitle: "Refined brilliance",
-      image:
-        "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1200&q=85",
-    },
-    {
-      name: "Rings",
-      subtitle: "Made to treasure",
-      image:
-        "https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1200&q=85",
-    },
-    {
-      name: "Bracelets",
-      subtitle: "Quiet luxury",
-      image:
-        "https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=1200&q=85",
-    },
-  ];
+  const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+
+  /* =========================================
+     NEWSLETTER SUBSCRIPTION
+  ========================================= */
+
+  const [subscriberEmail, setSubscriberEmail] = useState("");
+  const [subscribeLoading, setSubscribeLoading] = useState(false);
+  const [subscribeMessage, setSubscribeMessage] = useState("");
+  const [subscribeError, setSubscribeError] = useState("");
 
   /* =========================================
      AUTOMATIC HERO IMAGE CHANGE
@@ -88,7 +72,13 @@ function Home() {
         setRateLoading(true);
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/rates`
+          `${import.meta.env.VITE_API_URL}/api/rates?t=${Date.now()}`,
+          {
+            cache: "no-store",
+            headers: {
+              Accept: "application/json",
+            },
+          }
         );
 
         if (!response.ok) {
@@ -116,6 +106,145 @@ function Home() {
 
     return () => clearInterval(rateInterval);
   }, []);
+
+  /* =========================================
+     FETCH PRODUCTS
+  ========================================= */
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setProductsLoading(true);
+
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/products`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Failed to fetch products"
+          );
+        }
+
+        setProducts(data.products || []);
+      } catch (error) {
+        console.error("Fetch Home Products Error:", error);
+        setProducts([]);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  /* =========================================
+     NEWSLETTER SUBSCRIBE
+  ========================================= */
+
+  const handleSubscribe = async (e) => {
+    e.preventDefault();
+
+    setSubscribeMessage("");
+    setSubscribeError("");
+
+    const email = subscriberEmail.trim();
+
+    if (!email) {
+      setSubscribeError("Please enter your email address.");
+      return;
+    }
+
+    try {
+      setSubscribeLoading(true);
+      const apiUrl = import.meta.env.VITE_API_URL;
+
+      console.log("Newsletter API URL:", apiUrl);
+      const response = await fetch(
+        `${apiUrl}/api/newsletter/subscribe`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Unable to subscribe."
+        );
+      }
+
+      setSubscribeMessage(data.message);
+      setSubscriberEmail("");
+    } catch (error) {
+      console.error(
+        "Newsletter subscription error:",
+        error
+      );
+
+      setSubscribeError(
+        error.message ||
+        "Unable to subscribe right now. Please try again."
+      );
+    } finally {
+      setSubscribeLoading(false);
+    }
+  };
+
+  /* =========================================
+     CREATE DYNAMIC COLLECTIONS
+     From product.category
+  ========================================= */
+
+  const categories = useMemo(() => {
+    const collectionMap = {};
+
+    products.forEach((product) => {
+      const category = product.category?.trim();
+
+      if (!category) return;
+
+      if (!collectionMap[category]) {
+        collectionMap[category] = {
+          name: category,
+          image:
+            product.images?.[0] ||
+            "https://via.placeholder.com/900",
+          count: 0,
+        };
+      }
+
+      collectionMap[category].count += 1;
+    });
+
+    return Object.values(collectionMap);
+  }, [products]);
+
+  /* =========================================
+     COLLECTION SUBTITLE
+  ========================================= */
+
+  const getCollectionSubtitle = (category) => {
+    const subtitles = {
+      Necklaces: "Statement pieces",
+      Earrings: "Refined brilliance",
+      Rings: "Made to treasure",
+      Bracelets: "Quiet luxury",
+      Bangles: "Timeless elegance",
+      Chains: "Everyday luxury",
+      Pendants: "Delicate expressions",
+      Anklets: "Graceful details",
+    };
+
+    return subtitles[category] || "Curated jewellery";
+  };
 
   return (
     <div className="bg-[#f8f6f1] text-[#171717]">
@@ -177,7 +306,7 @@ function Home() {
               </Link>
 
               <Link
-                to="/shop"
+                to="/collections"
                 className="group inline-flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-white"
               >
                 Explore Collection
@@ -245,9 +374,8 @@ function Home() {
 
       </section>
 
-
       {/* =========================================
-          CATEGORY GRID
+          DYNAMIC CATEGORY GRID
       ========================================= */}
 
       <section className="border-y border-[#e5dfd5] bg-[#f3efe7] px-6 py-20 sm:px-10 lg:px-16 lg:py-28">
@@ -269,7 +397,7 @@ function Home() {
             </div>
 
             <Link
-              to="/shop"
+              to="/collections"
               className="group flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.25em]"
             >
               View all
@@ -280,55 +408,97 @@ function Home() {
 
           </div>
 
+          {/* LOADING */}
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {productsLoading ? (
 
-            {categories.map((category) => (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-              <Link
-                key={category.name}
-                to="/shop"
-                className="group relative aspect-[3/4] overflow-hidden bg-[#ddd]"
-              >
+              {[1, 2, 3, 4].map((item) => (
 
-                <img
-                  src={category.image}
-                  alt={category.name}
-                  className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-105"
+                <div
+                  key={item}
+                  className="aspect-[3/4] animate-pulse bg-[#ddd8cf]"
                 />
 
-                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/5 to-transparent" />
+              ))}
 
-                <div className="absolute inset-x-0 bottom-0 p-6 text-white">
+            </div>
 
-                  <p className="mb-2 text-[9px] uppercase tracking-[0.25em] text-white/70">
-                    {category.subtitle}
-                  </p>
+          ) : categories.length === 0 ? (
 
-                  <h3 className="font-serif text-3xl">
-                    {category.name}
-                  </h3>
+            <div className="border border-[#ded8ce] bg-[#eeeae2] px-6 py-16 text-center">
 
-                  <div className="mt-4 flex items-center gap-3 text-[9px] uppercase tracking-[0.25em]">
+              <p className="font-serif text-2xl">
+                Collections coming soon
+              </p>
 
-                    Discover
+              <p className="mt-3 text-sm text-[#77716a]">
+                New Aurelia jewellery collections will appear here.
+              </p>
 
-                    <span className="h-px w-6 bg-white transition-all duration-300 group-hover:w-10" />
+              <Link
+                to="/shop"
+                className="mt-6 inline-flex bg-black px-7 py-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-[#a9874a]"
+              >
+                Shop Jewellery
+              </Link>
+
+            </div>
+
+          ) : (
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+              {categories.map((category) => (
+
+                <Link
+                  key={category.name}
+                  to={`/shop?category=${encodeURIComponent(
+                    category.name
+                  )}`}
+                  className="group relative aspect-[3/4] overflow-hidden bg-[#ddd]"
+                >
+
+                  <img
+                    src={category.image}
+                    alt={category.name}
+                    className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-105"
+                  />
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/5 to-transparent" />
+
+                  <div className="absolute inset-x-0 bottom-0 p-6 text-white">
+
+                    <p className="mb-2 text-[9px] uppercase tracking-[0.25em] text-white/70">
+                      {getCollectionSubtitle(category.name)}
+                    </p>
+
+                    <h3 className="font-serif text-3xl">
+                      {category.name}
+                    </h3>
+
+                    <div className="mt-4 flex items-center gap-3 text-[9px] uppercase tracking-[0.25em]">
+
+                      Discover
+
+                      <span className="h-px w-6 bg-white transition-all duration-300 group-hover:w-10" />
+
+                    </div>
 
                   </div>
 
-                </div>
+                </Link>
 
-              </Link>
+              ))}
 
-            ))}
+            </div>
 
-          </div>
+          )}
 
         </div>
 
       </section>
-
 
       {/* =========================================
           EDITORIAL STORY
@@ -349,7 +519,6 @@ function Home() {
             <div className="absolute inset-0 bg-black/15" />
 
           </div>
-
 
           <div className="flex items-center px-8 py-16 text-white sm:px-12 lg:px-16">
 
@@ -397,7 +566,6 @@ function Home() {
 
       </section>
 
-
       {/* =========================================
           STATEMENT
       ========================================= */}
@@ -434,7 +602,6 @@ function Home() {
 
       </section>
 
-
       {/* =========================================
           NEWSLETTER
       ========================================= */}
@@ -462,22 +629,49 @@ function Home() {
               private offers directly in your inbox.
             </p>
 
-            <div className="flex border-b border-[#8e877d]">
+            <form
+              onSubmit={handleSubscribe}
+              className="border-b border-[#8e877d]"
+            >
 
-              <input
-                type="email"
-                placeholder="Your email address"
-                className="w-full bg-transparent px-0 py-4 text-sm text-black placeholder:text-[#8e877d] focus:outline-none"
-              />
+              <div className="flex">
 
-              <button
-                type="button"
-                className="whitespace-nowrap px-0 py-4 text-[10px] font-semibold uppercase tracking-[0.25em]"
-              >
-                Subscribe
-              </button>
+                <input
+                  type="email"
+                  value={subscriberEmail}
+                  onChange={(e) =>
+                    setSubscriberEmail(e.target.value)
+                  }
+                  placeholder="Your email address"
+                  disabled={subscribeLoading}
+                  className="w-full bg-transparent px-0 py-4 text-sm text-black placeholder:text-[#8e877d] focus:outline-none disabled:opacity-50"
+                />
 
-            </div>
+                <button
+                  type="submit"
+                  disabled={subscribeLoading}
+                  className="whitespace-nowrap px-0 py-4 text-[10px] font-semibold uppercase tracking-[0.25em] transition hover:text-[#a9874a] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {subscribeLoading
+                    ? "Subscribing..."
+                    : "Subscribe"}
+                </button>
+
+              </div>
+
+              {subscribeMessage && (
+                <p className="pb-3 pt-2 text-xs text-[#7a6338]">
+                  {subscribeMessage}
+                </p>
+              )}
+
+              {subscribeError && (
+                <p className="pb-3 pt-2 text-xs text-red-600">
+                  {subscribeError}
+                </p>
+              )}
+
+            </form>
 
           </div>
 

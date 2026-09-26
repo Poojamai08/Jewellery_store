@@ -6,6 +6,7 @@ const prisma = require("./lib/prisma");
 const orderRoutes = require("./routes/orderRoutes");
 const productRoutes = require("./routes/productRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const newsletterRoutes = require("./routes/newsletterRoutes");
 
 dotenv.config();
 
@@ -650,6 +651,7 @@ app.get("/api/rates", async (req, res) => {
 app.use("/api/orders", orderRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/newsletter", newsletterRoutes);
 
 const PORT = process.env.PORT || 5000;
 

@@ -42,7 +42,7 @@ function sendBrevoEmail({ to, subject, html }) {
             method: "POST",
 
             headers: {
-                "accept": "application/json",
+                accept: "application/json",
                 "api-key": apiKey,
                 "content-type": "application/json",
                 "content-length": Buffer.byteLength(data),
@@ -93,6 +93,86 @@ function sendBrevoEmail({ to, subject, html }) {
 }
 
 
+/* =========================================================
+   ADD CONTACT TO BREVO
+   ========================================================= */
+
+async function addBrevoContact(email) {
+    return new Promise((resolve, reject) => {
+        const apiKey = process.env.BREVO_API_KEY;
+
+        if (!apiKey) {
+            return reject(
+                new Error("BREVO_API_KEY is not configured")
+            );
+        }
+
+        const data = JSON.stringify({
+            email,
+            updateEnabled: true,
+        });
+
+        const options = {
+            hostname: "api.brevo.com",
+            path: "/v3/contacts",
+            method: "POST",
+
+            headers: {
+                accept: "application/json",
+                "api-key": apiKey,
+                "content-type": "application/json",
+                "content-length": Buffer.byteLength(data),
+            },
+
+            timeout: 15000,
+        };
+
+        const request = https.request(
+            options,
+            (response) => {
+                let responseData = "";
+
+                response.on("data", (chunk) => {
+                    responseData += chunk;
+                });
+
+                response.on("end", () => {
+                    if (
+                        response.statusCode >= 200 &&
+                        response.statusCode < 300
+                    ) {
+                        resolve(responseData);
+                    } else {
+                        reject(
+                            new Error(
+                                `Brevo Contact API error ${response.statusCode}: ${responseData}`
+                            )
+                        );
+                    }
+                });
+            }
+        );
+
+        request.on("timeout", () => {
+            request.destroy(
+                new Error("Brevo Contact API connection timeout")
+            );
+        });
+
+        request.on("error", (error) => {
+            reject(error);
+        });
+
+        request.write(data);
+        request.end();
+    });
+}
+
+
+/* =========================================================
+   ORDER CONFIRMATION EMAIL
+   ========================================================= */
+
 async function sendOrderConfirmationEmail(order) {
     const customer = order.customer;
 
@@ -125,6 +205,7 @@ async function sendOrderConfirmationEmail(order) {
 
         <head>
             <meta charset="UTF-8" />
+
             <meta
                 name="viewport"
                 content="width=device-width, initial-scale=1.0"
@@ -282,11 +363,13 @@ async function sendOrderConfirmationEmail(order) {
                             color:#77716a;
                             font-size:13px;
                         ">
+
                             <span>Subtotal</span>
 
                             <span>
                                 ₹${Number(order.subtotal).toLocaleString("en-IN")}
                             </span>
+
                         </div>
 
 
@@ -297,15 +380,16 @@ async function sendOrderConfirmationEmail(order) {
                             color:#77716a;
                             font-size:13px;
                         ">
+
                             <span>Shipping</span>
 
                             <span>
-                                ${
-                                    Number(order.shipping) === 0
-                                        ? "FREE"
-                                        : `₹${Number(order.shipping).toLocaleString("en-IN")}`
-                                }
+                                ${Number(order.shipping) === 0
+            ? "FREE"
+            : `₹${Number(order.shipping).toLocaleString("en-IN")}`
+        }
                             </span>
+
                         </div>
 
 
@@ -319,11 +403,13 @@ async function sendOrderConfirmationEmail(order) {
                             font-size:17px;
                             font-weight:bold;
                         ">
+
                             <span>Total</span>
 
                             <span>
                                 ₹${Number(order.total).toLocaleString("en-IN")}
                             </span>
+
                         </div>
 
                     </div>
@@ -376,10 +462,12 @@ async function sendOrderConfirmationEmail(order) {
                         font-size:13px;
                         line-height:1.8;
                     ">
+
                         ${customer.address}<br />
                         ${customer.city}, ${customer.state}<br />
                         ${customer.pincode}<br />
                         India
+
                     </div>
 
 
@@ -393,8 +481,10 @@ async function sendOrderConfirmationEmail(order) {
                         font-size:13px;
                         line-height:1.7;
                     ">
+
                         We will keep you updated as your order moves
                         through processing and delivery.
+
                     </div>
 
                 </div>
@@ -456,6 +546,12 @@ async function sendOrderConfirmationEmail(order) {
 }
 
 
+/* =========================================================
+   EXPORTS
+   ========================================================= */
+
 module.exports = {
     sendOrderConfirmationEmail,
+    addBrevoContact,
 };
+

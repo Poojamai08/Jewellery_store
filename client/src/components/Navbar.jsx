@@ -420,7 +420,7 @@ function Navbar() {
             </Link>
 
             <Link
-              to="/shop"
+              to="/collections"
               className="text-[10px] uppercase tracking-[0.2em] text-[#333333] transition hover:text-[#a9874a]"
             >
               Collections
@@ -660,7 +660,7 @@ function Navbar() {
             </Link>
 
             <Link
-              to="/shop"
+              to="/collections"
               onClick={closeMenu}
               className="border-b border-[#e6e1d7] py-4 text-[11px] uppercase tracking-[0.2em]"
             >

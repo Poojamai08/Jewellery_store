@@ -3,9 +3,12 @@ import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 
 function Shop() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [products, setProducts] = useState([]);
-  const [category, setCategory] = useState("All");
+  const [category, setCategory] = useState(
+    searchParams.get("category") || "All"
+  );
   const [sort, setSort] = useState("featured");
   const [search, setSearch] = useState(
     searchParams.get("search") || ""
@@ -13,13 +16,26 @@ function Shop() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const categories = [
-    "All",
-    "Necklaces",
-    "Earrings",
-    "Rings",
-    "Bracelets",
-  ];
+  /* =========================================
+     DYNAMIC CATEGORIES
+     Categories are created from available products
+  ========================================= */
+
+  const categories = useMemo(() => {
+    const uniqueCategories = [
+      ...new Set(
+        products
+          .map((product) => product.category?.trim())
+          .filter(Boolean)
+      ),
+    ];
+
+    return ["All", ...uniqueCategories];
+  }, [products]);
+
+  /* =========================================
+     FETCH PRODUCTS
+  ========================================= */
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -53,7 +69,9 @@ function Shop() {
         setProducts(formattedProducts);
       } catch (error) {
         console.error("Fetch Products Error:", error);
-        setError("Unable to load jewellery. Please try again.");
+        setError(
+          "Unable to load jewellery. Please try again."
+        );
       } finally {
         setLoading(false);
       }
@@ -62,22 +80,45 @@ function Shop() {
     fetchProducts();
   }, []);
 
+  /* =========================================
+     SYNC URL → CATEGORY + SEARCH
+  ========================================= */
+
+  useEffect(() => {
+    const urlCategory = searchParams.get("category");
+    const urlSearch = searchParams.get("search");
+
+    setCategory(urlCategory || "All");
+    setSearch(urlSearch || "");
+  }, [searchParams]);
+
+  /* =========================================
+     FILTER + SORT PRODUCTS
+  ========================================= */
+
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
+    /* Category */
+
     if (category !== "All") {
       result = result.filter(
-        (product) => product.category === category
+        (product) =>
+          product.category?.trim() === category
       );
     }
+
+    /* Search */
 
     if (search.trim()) {
       result = result.filter((product) =>
         product.name
-          .toLowerCase()
+          ?.toLowerCase()
           .includes(search.toLowerCase())
       );
     }
+
+    /* Sort */
 
     if (sort === "price-low") {
       result.sort((a, b) => a.price - b.price);
@@ -96,12 +137,55 @@ function Shop() {
     return result;
   }, [products, category, sort, search]);
 
+  /* =========================================
+     CATEGORY CLICK
+  ========================================= */
+
+  const handleCategoryChange = (newCategory) => {
+    setCategory(newCategory);
+
+    const params = new URLSearchParams(searchParams);
+
+    if (newCategory === "All") {
+      params.delete("category");
+    } else {
+      params.set("category", newCategory);
+    }
+
+    setSearchParams(params);
+  };
+
+  /* =========================================
+     CLEAR SEARCH
+  ========================================= */
+
+  const handleClearSearch = () => {
+    setSearch("");
+
+    const params = new URLSearchParams(searchParams);
+    params.delete("search");
+
+    setSearchParams(params);
+  };
+
+  /* =========================================
+     VIEW ALL
+  ========================================= */
+
+  const handleViewAll = () => {
+    setCategory("All");
+    setSearch("");
+
+    setSearchParams({});
+  };
+
   return (
     <div className="min-h-screen bg-[#f8f6f1] text-[#171717]">
 
       {/* =========================================
           PAGE HERO
       ========================================= */}
+
       <section className="border-b border-[#e4ded4] bg-[#eee9e1]">
 
         <div className="mx-auto max-w-[1400px] px-6 py-20 text-center sm:px-10 lg:px-16 lg:py-28">
@@ -135,14 +219,17 @@ function Shop() {
       {/* =========================================
           SHOP CONTENT
       ========================================= */}
+
       <section className="mx-auto max-w-[1400px] px-6 py-14 sm:px-10 lg:px-16 lg:py-20">
 
         {/* Top controls */}
+
         <div className="border-b border-[#ded8ce] pb-7">
 
           <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
 
             {/* Categories */}
+
             <div>
 
               <p className="mb-4 text-[9px] font-semibold uppercase tracking-[0.35em] text-[#8c867e]">
@@ -152,20 +239,24 @@ function Shop() {
               <div className="flex flex-wrap gap-x-7 gap-y-3">
 
                 {categories.map((item) => (
+
                   <button
                     key={item}
-                    onClick={() => setCategory(item)}
+                    onClick={() => handleCategoryChange(item)}
                     className={`relative pb-2 text-[10px] font-semibold uppercase tracking-[0.2em] transition ${category === item
-                      ? "text-[#171717]"
-                      : "text-[#8b857d] hover:text-[#171717]"
+                        ? "text-[#171717]"
+                        : "text-[#8b857d] hover:text-[#171717]"
                       }`}
                   >
+
                     {item}
 
                     {category === item && (
                       <span className="absolute bottom-0 left-0 h-px w-full bg-[#c6a15b]" />
                     )}
+
                   </button>
+
                 ))}
 
               </div>
@@ -174,6 +265,7 @@ function Shop() {
 
 
             {/* Search + Sort */}
+
             <div className="flex flex-col gap-3 sm:flex-row">
 
               <div className="relative">
@@ -193,7 +285,23 @@ function Shop() {
                   type="text"
                   placeholder="Search jewellery"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+
+                    setSearch(value);
+
+                    const params = new URLSearchParams(
+                      searchParams
+                    );
+
+                    if (value.trim()) {
+                      params.set("search", value);
+                    } else {
+                      params.delete("search");
+                    }
+
+                    setSearchParams(params);
+                  }}
                   className="w-full border border-[#d9d2c8] bg-transparent py-3 pl-10 pr-4 text-xs text-[#171717] placeholder:text-[#9a948b] focus:border-[#c6a15b] focus:outline-none sm:w-[230px]"
                 />
 
@@ -205,6 +313,7 @@ function Shop() {
                 onChange={(e) => setSort(e.target.value)}
                 className="border border-[#d9d2c8] bg-[#f8f6f1] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4e4a45] focus:border-[#c6a15b] focus:outline-none"
               >
+
                 <option value="featured">
                   Featured
                 </option>
@@ -220,6 +329,7 @@ function Shop() {
                 <option value="name">
                   Name
                 </option>
+
               </select>
 
             </div>
@@ -230,33 +340,44 @@ function Shop() {
 
 
         {/* Product count */}
+
         {!loading && !error && (
+
           <div className="flex items-center justify-between py-7">
 
             <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#88827a]">
+
               {filteredProducts.length}{" "}
+
               {filteredProducts.length === 1
                 ? "Piece"
                 : "Pieces"}
+
             </p>
 
+
             {search && (
+
               <button
-                onClick={() => setSearch("")}
+                onClick={handleClearSearch}
                 className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#a9874a] hover:text-[#171717]"
               >
                 Clear search
               </button>
+
             )}
 
           </div>
+
         )}
 
 
         {/* =========================================
             LOADING
         ========================================= */}
+
         {loading && (
+
           <div className="flex min-h-[400px] items-center justify-center">
 
             <div className="text-center">
@@ -274,13 +395,16 @@ function Shop() {
             </div>
 
           </div>
+
         )}
 
 
         {/* =========================================
             ERROR
         ========================================= */}
+
         {!loading && error && (
+
           <div className="flex min-h-[400px] items-center justify-center">
 
             <div className="max-w-md text-center">
@@ -307,34 +431,42 @@ function Shop() {
             </div>
 
           </div>
+
         )}
 
 
         {/* =========================================
             PRODUCTS
         ========================================= */}
+
         {!loading &&
           !error &&
           filteredProducts.length > 0 && (
+
             <div className="grid gap-x-5 gap-y-14 sm:grid-cols-2 lg:grid-cols-4">
 
               {filteredProducts.map((product) => (
+
                 <ProductCard
                   key={product.id}
                   product={product}
                 />
+
               ))}
 
             </div>
+
           )}
 
 
         {/* =========================================
             EMPTY STATE
         ========================================= */}
+
         {!loading &&
           !error &&
           filteredProducts.length === 0 && (
+
             <div className="flex min-h-[400px] items-center justify-center">
 
               <div className="text-center">
@@ -350,10 +482,7 @@ function Shop() {
                 </p>
 
                 <button
-                  onClick={() => {
-                    setSearch("");
-                    setCategory("All");
-                  }}
+                  onClick={handleViewAll}
                   className="mt-7 border-b border-[#171717] pb-2 text-[9px] font-semibold uppercase tracking-[0.25em]"
                 >
                   View all jewellery
@@ -362,6 +491,7 @@ function Shop() {
               </div>
 
             </div>
+
           )}
 
       </section>
