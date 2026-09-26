@@ -7,15 +7,12 @@ function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
 
-  // ======================================================
-  // LIVE METAL RATES
-  // ======================================================
-
-  const [goldRate, setGoldRate] = useState(null);
-  const [silverRate, setSilverRate] = useState(null);
+  const [goldRates, setGoldRates] = useState(null);
+  const [silverRates, setSilverRates] = useState(null);
 
   const location = useLocation();
   const navigate = useNavigate();
+
 
   // ======================================================
   // CART
@@ -31,6 +28,7 @@ function Navbar() {
     0
   );
 
+
   // ======================================================
   // WISHLIST
   // ======================================================
@@ -41,21 +39,19 @@ function Navbar() {
 
   const wishlistCount = wishlistItems.length;
 
-  // ======================================================
-  // ACTIVE NAVIGATION
-  // ======================================================
-
-  const isActive = (path) => {
-    return location.pathname === path;
-  };
 
   // ======================================================
-  // CLOSE MOBILE MENU
+  // NAVIGATION
   // ======================================================
+
+  const isActive = (path) =>
+    location.pathname === path;
+
 
   const closeMenu = () => {
     setMenuOpen(false);
   };
+
 
   // ======================================================
   // SEARCH
@@ -66,11 +62,13 @@ function Navbar() {
 
     const query = searchText.trim();
 
+
     if (!query) {
       navigate("/shop");
       setSearchOpen(false);
       return;
     }
+
 
     navigate(
       `/shop?search=${encodeURIComponent(query)}`
@@ -79,42 +77,87 @@ function Navbar() {
     setSearchOpen(false);
   };
 
+
   const openSearch = () => {
     setSearchOpen(true);
     setMenuOpen(false);
   };
 
+
   // ======================================================
-  // FETCH LIVE GOLD & SILVER RATES
+  // LIVE METAL RATES
   // ======================================================
 
   useEffect(() => {
+
+    let isMounted = true;
+
+
     const fetchRates = async () => {
+
       try {
+
+        const apiUrl =
+          import.meta.env.VITE_API_URL;
+
+
+        if (!apiUrl) {
+          console.error(
+            "VITE_API_URL is not configured"
+          );
+
+          return;
+        }
+
+
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/rates`
+          `${apiUrl}/api/rates`
         );
+
 
         if (!response.ok) {
           throw new Error(
-            "Failed to fetch metal rates"
+            `Rates API error: ${response.status}`
           );
         }
 
+
         const data = await response.json();
 
-        setGoldRate(data.gold);
-        setSilverRate(data.silver);
+
+        console.log(
+          "AURELIA live metal rates:",
+          data
+        );
+
+
+        if (!isMounted) return;
+
+
+        // New API structure
+        if (data.gold) {
+          setGoldRates(data.gold);
+        }
+
+
+        if (data.silver) {
+          setSilverRates(data.silver);
+        }
+
       } catch (error) {
+
         console.error(
           "Metal rate fetching error:",
           error
         );
+
       }
     };
 
-    // Initial fetch
+
+    // Fetch immediately
     fetchRates();
+
 
     // Refresh every 5 minutes
     const rateInterval = setInterval(
@@ -122,16 +165,21 @@ function Navbar() {
       5 * 60 * 1000
     );
 
+
     return () => {
+      isMounted = false;
       clearInterval(rateInterval);
     };
+
   }, []);
+
 
   // ======================================================
   // FORMAT RATE
   // ======================================================
 
   const formatRate = (rate) => {
+
     if (
       rate === null ||
       rate === undefined ||
@@ -139,6 +187,7 @@ function Navbar() {
     ) {
       return "Loading...";
     }
+
 
     return `₹${Number(rate).toLocaleString(
       "en-IN",
@@ -148,179 +197,64 @@ function Navbar() {
     )}/g`;
   };
 
+
   // ======================================================
-  // GOLD PURITY RATES
+  // DIRECT RATES FROM BACKEND
   // ======================================================
 
-  // API gold rate is treated as 24K gold rate.
-
-  const gold24K = goldRate;
+  const gold24K =
+    goldRates?.k24 ?? null;
 
   const gold22K =
-    goldRate !== null
-      ? goldRate * (22 / 24)
-      : null;
+    goldRates?.k22 ?? null;
 
   const gold18K =
-    goldRate !== null
-      ? goldRate * (18 / 24)
-      : null;
+    goldRates?.k18 ?? null;
 
   const gold14K =
-    goldRate !== null
-      ? goldRate * (14 / 24)
-      : null;
+    goldRates?.k14 ?? null;
 
-  // ======================================================
-  // SILVER PURITY RATES
-  // ======================================================
 
-  // API silver rate is treated as pure silver rate.
-
-  const pureSilver = silverRate;
-
-  // Sterling Silver = 92.5% pure silver
+  const pureSilver =
+    silverRates?.pure ?? null;
 
   const sterlingSilver =
-    silverRate !== null
-      ? silverRate * 0.925
-      : null;
+    silverRates?.sterling ?? null;
+
 
   // ======================================================
-  // TICKER CONTENT
+  // TICKER DATA
   // ======================================================
 
-  const tickerContent = (
-    <>
-      {/* MARKET UPDATE */}
+  const tickerItems = [
+    `24K GOLD ${formatRate(gold24K)}`,
+    `22K GOLD ${formatRate(gold22K)}`,
+    `18K GOLD ${formatRate(gold18K)}`,
+    `14K GOLD ${formatRate(gold14K)}`,
+    `PURE SILVER ${formatRate(pureSilver)}`,
+    `STERLING SILVER ${formatRate(sterlingSilver)}`,
+  ];
 
-      <span className="text-[9px] uppercase tracking-[0.18em] text-[#d6d0c6]">
-        AURELIA MARKET UPDATE
-      </span>
-
-      {/* 24K GOLD */}
-
-      <span className="text-[9px] uppercase tracking-[0.15em]">
-        24K Gold
-
-        <span className="ml-2 text-[#c9a96e]">
-          {formatRate(gold24K)}
-        </span>
-      </span>
-
-      <span className="text-[#5b5b5b]">
-        •
-      </span>
-
-      {/* 22K GOLD */}
-
-      <span className="text-[9px] uppercase tracking-[0.15em]">
-        22K Gold
-
-        <span className="ml-2 text-[#c9a96e]">
-          {formatRate(gold22K)}
-        </span>
-      </span>
-
-      <span className="text-[#5b5b5b]">
-        •
-      </span>
-
-      {/* 18K GOLD */}
-
-      <span className="text-[9px] uppercase tracking-[0.15em]">
-        18K Gold
-
-        <span className="ml-2 text-[#c9a96e]">
-          {formatRate(gold18K)}
-        </span>
-      </span>
-
-      <span className="text-[#5b5b5b]">
-        •
-      </span>
-
-      {/* 14K GOLD */}
-
-      <span className="text-[9px] uppercase tracking-[0.15em]">
-        14K Gold
-
-        <span className="ml-2 text-[#c9a96e]">
-          {formatRate(gold14K)}
-        </span>
-      </span>
-
-      <span className="text-[#5b5b5b]">
-        •
-      </span>
-
-      {/* PURE SILVER */}
-
-      <span className="text-[9px] uppercase tracking-[0.15em]">
-        Pure Silver
-
-        <span className="ml-2 text-[#c9a96e]">
-          {formatRate(pureSilver)}
-        </span>
-      </span>
-
-      <span className="text-[#5b5b5b]">
-        •
-      </span>
-
-      {/* STERLING SILVER */}
-
-      <span className="text-[9px] uppercase tracking-[0.15em]">
-        Sterling Silver
-
-        <span className="ml-2 text-[#c9a96e]">
-          {formatRate(sterlingSilver)}
-        </span>
-      </span>
-
-      <span className="text-[#5b5b5b]">
-        •
-      </span>
-
-      {/* DISCLAIMER */}
-
-      <span className="text-[9px] uppercase tracking-[0.15em] text-[#aaa39a]">
-        Indicative market rate
-      </span>
-    </>
-  );
-
-  // ======================================================
-  // RETURN
-  // ======================================================
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#e6e1d7] bg-[#f8f6f1]/95 backdrop-blur-md">
+    <>
+      {/* ==================================================
+          TOP RATE TICKER
+      ================================================== */}
 
-      {/* ================================================= */}
-      {/* LIVE GOLD & SILVER TICKER */}
-      {/* ================================================= */}
+      <div className="bg-black text-white overflow-hidden">
 
-      <div className="ticker-wrapper border-b border-[#2b2b2b] bg-[#111111] text-white">
+        <div className="flex items-center whitespace-nowrap">
 
-        <div className="relative flex h-[30px] items-center overflow-hidden whitespace-nowrap">
+          <div className="flex animate-marquee gap-10 py-2 text-[11px] tracking-[0.18em]">
 
-          <div className="ticker-track flex min-w-max items-center">
-
-            {/* FIRST GROUP */}
-
-            <div className="flex items-center gap-12 px-6">
-              {tickerContent}
-            </div>
-
-            {/* SECOND GROUP */}
-
-            <div
-              className="flex items-center gap-12 px-6"
-              aria-hidden="true"
-            >
-              {tickerContent}
-            </div>
+            {tickerItems.map(
+              (item, index) => (
+                <span key={index}>
+                  {item}
+                </span>
+              )
+            )}
 
           </div>
 
@@ -328,383 +262,386 @@ function Navbar() {
 
       </div>
 
-      {/* ================================================= */}
-      {/* TOP BAR */}
-      {/* ================================================= */}
 
-      <div className="hidden border-b border-[#e6e1d7] bg-[#111111] py-2 text-center text-[9px] uppercase tracking-[0.3em] text-white sm:block">
+      {/* ==================================================
+          MAIN NAVBAR
+      ================================================== */}
 
-        Complimentary shipping on orders above ₹10,000
+      <nav className="bg-white border-b border-gray-200">
 
-      </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-      {/* ================================================= */}
-      {/* NAVBAR */}
-      {/* ================================================= */}
-
-      <div className="mx-auto max-w-[1400px] px-5 sm:px-8">
-
-        <div className="relative flex h-[76px] items-center justify-between">
-
-          {/* MOBILE MENU BUTTON */}
-
-          <button
-            onClick={() =>
-              setMenuOpen(!menuOpen)
-            }
-            className="flex h-10 w-10 items-center justify-center lg:hidden"
-            aria-label="Toggle menu"
-          >
-
-            <div className="space-y-1.5">
-
-              <span
-                className={`block h-px w-5 bg-[#111111] transition ${
-                  menuOpen
-                    ? "translate-y-[4px] rotate-45"
-                    : ""
-                }`}
-              />
-
-              <span
-                className={`block h-px w-5 bg-[#111111] transition ${
-                  menuOpen
-                    ? "-rotate-45"
-                    : ""
-                }`}
-              />
-
-            </div>
-
-          </button>
+          <div className="h-20 flex items-center justify-between">
 
 
-          {/* DESKTOP NAVIGATION */}
-
-          <nav className="hidden items-center gap-8 lg:flex">
+            {/* ==================================================
+                LOGO
+            ================================================== */}
 
             <Link
               to="/"
-              className={`text-[10px] uppercase tracking-[0.2em] transition ${
-                isActive("/")
-                  ? "text-[#a9874a]"
-                  : "text-[#333333] hover:text-[#a9874a]"
-              }`}
+              className="flex flex-col leading-none"
+              onClick={closeMenu}
             >
-              Home
+
+              <span className="text-2xl sm:text-3xl font-serif tracking-[0.25em] font-semibold">
+                AURELIA
+              </span>
+
+              <span className="text-[8px] sm:text-[9px] tracking-[0.35em] text-gray-500 text-center mt-1">
+                FINE JEWELLERY
+              </span>
+
             </Link>
 
 
-            <Link
-              to="/shop"
-              className={`text-[10px] uppercase tracking-[0.2em] transition ${
-                isActive("/shop")
-                  ? "text-[#a9874a]"
-                  : "text-[#333333] hover:text-[#a9874a]"
-              }`}
-            >
-              Shop
-            </Link>
+            {/* ==================================================
+                DESKTOP MENU
+            ================================================== */}
+
+            <div className="hidden lg:flex items-center gap-8">
+
+              <Link
+                to="/"
+                className={`text-sm tracking-wide transition ${isActive("/")
+                    ? "text-black font-medium"
+                    : "text-gray-600 hover:text-black"
+                  }`}
+              >
+                HOME
+              </Link>
 
 
-            <Link
-              to="/shop"
-              className="text-[10px] uppercase tracking-[0.2em] text-[#333333] transition hover:text-[#a9874a]"
-            >
-              Collections
-            </Link>
+              <Link
+                to="/shop"
+                className={`text-sm tracking-wide transition ${isActive("/shop")
+                    ? "text-black font-medium"
+                    : "text-gray-600 hover:text-black"
+                  }`}
+              >
+                SHOP
+              </Link>
 
 
-            <Link
-              to="/about"
-              className="text-[10px] uppercase tracking-[0.2em] text-[#333333] transition hover:text-[#a9874a]"
-            >
-              About
-            </Link>
-
-          </nav>
-
-
-          {/* LOGO */}
-
-          <Link
-            to="/"
-            className="absolute left-1/2 -translate-x-1/2 text-center"
-          >
-
-            <span className="block font-serif text-[25px] tracking-[0.28em] text-[#111111] sm:text-[29px]">
-              AURELIA
-            </span>
-
-            <span className="mt-0.5 block text-[7px] uppercase tracking-[0.48em] text-[#a9874a]">
-              Fine Jewellery
-            </span>
-
-          </Link>
+              <Link
+                to="/collections"
+                className={`text-sm tracking-wide transition ${isActive("/collections")
+                    ? "text-black font-medium"
+                    : "text-gray-600 hover:text-black"
+                  }`}
+              >
+                COLLECTIONS
+              </Link>
 
 
-          {/* RIGHT ACTIONS */}
+              <Link
+                to="/about"
+                className={`text-sm tracking-wide transition ${isActive("/about")
+                    ? "text-black font-medium"
+                    : "text-gray-600 hover:text-black"
+                  }`}
+              >
+                ABOUT
+              </Link>
 
-          <div className="flex items-center gap-1 sm:gap-3">
 
-            {/* SEARCH */}
+              <Link
+                to="/contact"
+                className={`text-sm tracking-wide transition ${isActive("/contact")
+                    ? "text-black font-medium"
+                    : "text-gray-600 hover:text-black"
+                  }`}
+              >
+                CONTACT
+              </Link>
 
-            <button
-              onClick={openSearch}
-              className="flex h-10 w-10 items-center justify-center transition hover:text-[#a9874a]"
-              aria-label="Search"
-            >
+            </div>
 
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
+
+            {/* ==================================================
+                RIGHT ICONS
+            ================================================== */}
+
+            <div className="flex items-center gap-4">
+
+
+              {/* SEARCH */}
+
+              <button
+                type="button"
+                onClick={openSearch}
+                className="text-gray-700 hover:text-black transition"
+                aria-label="Search"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="21"
+                  height="21"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle
+                    cx="11"
+                    cy="11"
+                    r="7"
+                  />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+              </button>
+
+
+              {/* WISHLIST */}
+
+              <Link
+                to="/wishlist"
+                className="relative text-gray-700 hover:text-black transition"
+                aria-label="Wishlist"
               >
 
-                <circle
-                  cx="11"
-                  cy="11"
-                  r="7"
-                />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="21"
+                  height="21"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20.8 8.6c0 5.4-8.8 10.4-8.8 10.4S3.2 14 3.2 8.6A4.6 4.6 0 0 1 12 6.2a4.6 4.6 0 0 1 8.8 2.4Z" />
+                </svg>
 
-                <path d="M20 20L16.5 16.5" />
 
-              </svg>
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-black text-white text-[9px] flex items-center justify-center">
+                    {wishlistCount}
+                  </span>
+                )}
 
-            </button>
+              </Link>
 
 
-            {/* WISHLIST */}
+              {/* CART */}
 
-            <Link
-              to="/wishlist"
-              className="relative hidden h-10 w-10 items-center justify-center transition hover:text-[#a9874a] sm:flex"
-              aria-label="Wishlist"
-            >
-
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
+              <Link
+                to="/cart"
+                className="relative text-gray-700 hover:text-black transition"
+                aria-label="Cart"
               >
 
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="21"
+                  height="21"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle
+                    cx="9"
+                    cy="20"
+                    r="1"
+                  />
 
-              </svg>
+                  <circle
+                    cx="19"
+                    cy="20"
+                    r="1"
+                  />
 
-
-              {wishlistCount > 0 && (
-                <span className="absolute right-0 top-0 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[#111111] px-1 text-[8px] text-white">
-                  {wishlistCount}
-                </span>
-              )}
-
-            </Link>
-
-
-            {/* CART */}
-
-            <Link
-              to="/cart"
-              className="relative flex h-10 w-10 items-center justify-center transition hover:text-[#a9874a]"
-              aria-label="Cart"
-            >
-
-              <svg
-                width="19"
-                height="19"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-
-                <path d="M6 8h12l1 13H5L6 8Z" />
-
-                <path d="M9 8V6a3 3 0 0 1 6 0v2" />
-
-              </svg>
+                  <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.4L21 8H6" />
+                </svg>
 
 
-              {cartCount > 0 && (
-                <span className="absolute right-0 top-0 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[#111111] px-1 text-[8px] text-white">
-                  {cartCount}
-                </span>
-              )}
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-black text-white text-[9px] flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
 
-            </Link>
-
-          </div>
-
-        </div>
-
-      </div>
+              </Link>
 
 
-      {/* ================================================= */}
-      {/* SEARCH PANEL */}
-      {/* ================================================= */}
+              {/* MOBILE MENU */}
 
-      <div
-        className={`overflow-hidden border-t border-[#e6e1d7] bg-[#f8f6f1] transition-all duration-300 ${
-          searchOpen
-            ? "max-h-[150px] opacity-100"
-            : "max-h-0 opacity-0"
-        }`}
-      >
-
-        <div className="mx-auto max-w-[900px] px-5 py-6 sm:px-8">
-
-          <form
-            onSubmit={handleSearch}
-            className="flex items-center gap-3"
-          >
-
-            <div className="relative flex-1">
-
-              <svg
-                className="absolute left-0 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8d877e]"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-
-                <circle
-                  cx="11"
-                  cy="11"
-                  r="7"
-                />
-
-                <path d="M20 20L16.5 16.5" />
-
-              </svg>
-
-
-              <input
-                autoFocus
-                type="text"
-                value={searchText}
-                onChange={(e) =>
-                  setSearchText(e.target.value)
+              <button
+                type="button"
+                onClick={() =>
+                  setMenuOpen((prev) => !prev)
                 }
-                placeholder="Search jewellery..."
-                className="w-full border-0 border-b border-[#cfc7bb] bg-transparent py-3 pl-7 pr-2 text-sm text-[#171717] outline-none transition focus:border-[#a9874a]"
-              />
+                className="lg:hidden text-gray-700 hover:text-black"
+                aria-label="Menu"
+              >
+
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="23"
+                  height="23"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  {menuOpen ? (
+                    <>
+                      <path d="M6 6l12 12" />
+                      <path d="M18 6 6 18" />
+                    </>
+                  ) : (
+                    <>
+                      <path d="M4 7h16" />
+                      <path d="M4 12h16" />
+                      <path d="M4 17h16" />
+                    </>
+                  )}
+                </svg>
+
+              </button>
 
             </div>
 
-
-            <button
-              type="submit"
-              className="bg-[#171717] px-6 py-3 text-[9px] font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-[#a9874a]"
-            >
-              Search
-            </button>
+          </div>
 
 
-            <button
-              type="button"
-              onClick={() => {
-                setSearchOpen(false);
-                setSearchText("");
-              }}
-              className="px-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#77716a] transition hover:text-[#171717]"
-            >
-              Close
-            </button>
+          {/* ==================================================
+              MOBILE MENU
+          ================================================== */}
 
-          </form>
+          {menuOpen && (
+
+            <div className="lg:hidden border-t border-gray-100 py-5">
+
+              <div className="flex flex-col gap-5">
+
+                <Link
+                  to="/"
+                  onClick={closeMenu}
+                  className="text-sm tracking-widest"
+                >
+                  HOME
+                </Link>
+
+                <Link
+                  to="/shop"
+                  onClick={closeMenu}
+                  className="text-sm tracking-widest"
+                >
+                  SHOP
+                </Link>
+
+                <Link
+                  to="/collections"
+                  onClick={closeMenu}
+                  className="text-sm tracking-widest"
+                >
+                  COLLECTIONS
+                </Link>
+
+                <Link
+                  to="/about"
+                  onClick={closeMenu}
+                  className="text-sm tracking-widest"
+                >
+                  ABOUT
+                </Link>
+
+                <Link
+                  to="/contact"
+                  onClick={closeMenu}
+                  className="text-sm tracking-widest"
+                >
+                  CONTACT
+                </Link>
+
+              </div>
+
+            </div>
+
+          )}
 
         </div>
 
-      </div>
+      </nav>
 
 
-      {/* ================================================= */}
-      {/* MOBILE MENU */}
-      {/* ================================================= */}
+      {/* ==================================================
+          SEARCH OVERLAY
+      ================================================== */}
 
-      <div
-        className={`overflow-hidden border-t border-[#e6e1d7] bg-[#f8f6f1] transition-all duration-300 lg:hidden ${
-          menuOpen
-            ? "max-h-[400px] opacity-100"
-            : "max-h-0 opacity-0"
-        }`}
-      >
+      {searchOpen && (
 
-        <nav className="mx-auto max-w-[1400px] px-5 py-5">
+        <div className="fixed inset-0 z-50 bg-black/40">
 
-          <div className="flex flex-col">
+          <div className="bg-white shadow-xl">
 
-            <Link
-              to="/"
-              onClick={closeMenu}
-              className="border-b border-[#e6e1d7] py-4 text-[11px] uppercase tracking-[0.2em]"
-            >
-              Home
-            </Link>
+            <div className="max-w-4xl mx-auto px-5 py-6">
+
+              <div className="flex items-center justify-between mb-5">
+
+                <h2 className="text-lg tracking-widest">
+                  SEARCH AURELIA
+                </h2>
 
 
-            <Link
-              to="/shop"
-              onClick={closeMenu}
-              className="border-b border-[#e6e1d7] py-4 text-[11px] uppercase tracking-[0.2em]"
-            >
-              Shop
-            </Link>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSearchOpen(false)
+                  }
+                  className="text-gray-500 hover:text-black text-2xl"
+                  aria-label="Close search"
+                >
+                  ×
+                </button>
+
+              </div>
 
 
-            <Link
-              to="/shop"
-              onClick={closeMenu}
-              className="border-b border-[#e6e1d7] py-4 text-[11px] uppercase tracking-[0.2em]"
-            >
-              Collections
-            </Link>
+              <form
+                onSubmit={handleSearch}
+                className="flex items-center border-b border-black"
+              >
+
+                <input
+                  type="text"
+                  value={searchText}
+                  onChange={(e) =>
+                    setSearchText(e.target.value)
+                  }
+                  autoFocus
+                  placeholder="Search jewellery..."
+                  className="flex-1 py-3 outline-none text-base"
+                />
 
 
-            <Link
-              to="/about"
-              onClick={closeMenu}
-              className="border-b border-[#e6e1d7] py-4 text-[11px] uppercase tracking-[0.2em]"
-            >
-              About
-            </Link>
+                <button
+                  type="submit"
+                  className="px-4 py-3 text-sm tracking-widest"
+                >
+                  SEARCH
+                </button>
 
+              </form>
 
-            <button
-              onClick={openSearch}
-              className="border-b border-[#e6e1d7] py-4 text-left text-[11px] uppercase tracking-[0.2em]"
-            >
-              Search
-            </button>
-
-
-            <Link
-              to="/cart"
-              onClick={closeMenu}
-              className="py-4 text-[11px] uppercase tracking-[0.2em]"
-            >
-              Cart
-
-              {cartCount > 0 &&
-                ` (${cartCount})`}
-            </Link>
+            </div>
 
           </div>
 
-        </nav>
+        </div>
 
-      </div>
+      )}
 
-    </header>
+    </>
   );
 }
 
