@@ -168,7 +168,139 @@ async function addBrevoContact(email) {
     });
 }
 
+async function sendNewCollectionEmail({
+    to,
+    product,
+}) {
+    const subject = `New Arrival at AURELIA — ${product.name}`;
 
+    const productImage =
+        product.images?.[0] ||
+        "https://via.placeholder.com/600x700";
+
+    const html = `
+        <div style="
+            margin:0;
+            padding:40px 20px;
+            background:#f8f6f1;
+            font-family:Arial, sans-serif;
+            color:#171717;
+        ">
+            <div style="
+                max-width:600px;
+                margin:0 auto;
+                background:#ffffff;
+                padding:40px;
+                text-align:center;
+            ">
+
+                <p style="
+                    font-size:11px;
+                    letter-spacing:4px;
+                    color:#a9874a;
+                    text-transform:uppercase;
+                    margin-bottom:20px;
+                ">
+                    AURELIA
+                </p>
+
+                <h1 style="
+                    font-family:Georgia, serif;
+                    font-size:36px;
+                    font-weight:normal;
+                    margin:0 0 15px;
+                ">
+                    A New Arrival
+                </h1>
+
+                <p style="
+                    color:#666;
+                    font-size:14px;
+                    line-height:1.7;
+                ">
+                    Discover the latest addition to the AURELIA collection.
+                </p>
+
+                <img
+                    src="${productImage}"
+                    alt="${product.name}"
+                    style="
+                        width:100%;
+                        max-width:500px;
+                        margin:25px 0;
+                        display:block;
+                    "
+                />
+
+                <p style="
+                    font-size:10px;
+                    letter-spacing:3px;
+                    color:#a9874a;
+                    text-transform:uppercase;
+                ">
+                    ${product.category}
+                </p>
+
+                <h2 style="
+                    font-family:Georgia, serif;
+                    font-size:28px;
+                    font-weight:normal;
+                    margin:10px 0;
+                ">
+                    ${product.name}
+                </h2>
+
+                <p style="
+                    font-size:18px;
+                    margin:15px 0;
+                ">
+                    ₹${Number(product.price).toLocaleString("en-IN")}
+                </p>
+
+                <p style="
+                    color:#666;
+                    font-size:14px;
+                    line-height:1.7;
+                ">
+                    ${product.description}
+                </p>
+
+                <div style="margin-top:30px;">
+                    <a
+                        href="${process.env.FRONTEND_URL}/shop"
+                        style="
+                            display:inline-block;
+                            padding:15px 30px;
+                            background:#171717;
+                            color:#ffffff;
+                            text-decoration:none;
+                            font-size:10px;
+                            letter-spacing:2px;
+                            text-transform:uppercase;
+                        "
+                    >
+                        Discover the Collection
+                    </a>
+                </div>
+
+                <p style="
+                    margin-top:40px;
+                    font-size:11px;
+                    color:#999;
+                ">
+                    With love from AURELIA
+                </p>
+
+            </div>
+        </div>
+    `;
+
+    return sendBrevoEmail({
+        to,
+        subject,
+        html,
+    });
+}
 /* =========================================================
    ORDER CONFIRMATION EMAIL
    ========================================================= */
@@ -553,5 +685,6 @@ async function sendOrderConfirmationEmail(order) {
 module.exports = {
     sendOrderConfirmationEmail,
     addBrevoContact,
+    sendNewCollectionEmail
 };
 

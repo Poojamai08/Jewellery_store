@@ -1,7 +1,9 @@
 const express = require("express");
 const prisma = require("../lib/prisma");
 const adminAuth = require("../middleware/adminAuth");
-
+const {
+    sendNewCollectionEmail,
+} = require("../services/emailService");
 const router = express.Router();
 
 
@@ -129,8 +131,8 @@ router.post("/", adminAuth, async (req, res) => {
                 metal,
                 weight:
                     weight !== undefined &&
-                    weight !== null &&
-                    weight !== ""
+                        weight !== null &&
+                        weight !== ""
                         ? Number(weight)
                         : null,
                 sku,
@@ -142,7 +144,56 @@ router.post("/", adminAuth, async (req, res) => {
             },
         });
 
+        // ======================================================
+        // SEND NEW COLLECTION EMAIL
+        // ======================================================
 
+        try {
+            const subscribers =
+                await prisma.newsletterSubscriber.findMany({
+                    select: {
+                        email: true,
+                    },
+                });
+
+            if (subscribers.length > 0) {
+                console.log(
+                    `Sending new collection email to ${subscribers.length} subscriber(s)...`
+                );
+
+                const emailResults = await Promise.allSettled(
+                    subscribers.map((subscriber) =>
+                        sendNewCollectionEmail({
+                            to: subscriber.email,
+                            product,
+                        })
+                    )
+                );
+
+                emailResults.forEach((result, index) => {
+                    if (result.status === "fulfilled") {
+                        console.log(
+                            `New collection email sent to ${subscribers[index].email}`
+                        );
+                    } else {
+                        console.error(
+                            `Failed to send new collection email to ${subscribers[index].email}:`,
+                            result.reason?.message || result.reason
+                        );
+                    }
+                });
+            } else {
+                console.log(
+                    "No newsletter subscribers found."
+                );
+            }
+
+        } catch (emailError) {
+            console.error(
+                "Newsletter notification error:",
+                emailError.message
+            );
+        }
         res.status(201).json({
             success: true,
             message: "Product created successfully",
@@ -227,8 +278,8 @@ router.put("/:id", adminAuth, async (req, res) => {
 
                 weight:
                     weight !== undefined &&
-                    weight !== null &&
-                    weight !== ""
+                        weight !== null &&
+                        weight !== ""
                         ? Number(weight)
                         : null,
 
