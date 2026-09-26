@@ -41,36 +41,8 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
-// ===============================
-// LIVE GOLD & SILVER RATES
-// ===============================
-
-// ===============================
-// LIVE GOLD & SILVER RATES
-// ===============================
-
-// ===============================
-// LIVE GOLD & SILVER RATES
-// ===============================
-
-// ======================================================
 // LIVE MADURAI GOLD & SILVER RATES
-// ======================================================
-
-const GOLD_RATES_URL =
-  "https://www.goodreturns.in/gold-rates/madurai.html";
-
-const SILVER_RATES_URL =
-  "https://www.goodreturns.in/silver-rates/madurai.html";
-
-let cachedRates = null;
-let lastRatesFetch = 0;
-
-// Refresh backend data every 30 minutes
-const RATE_CACHE_TIME = 30 * 60 * 1000;
-
-
-// ------------------------------------------------------
+// ==================================================
 // Helper: fetch webpage
 // ------------------------------------------------------
 
@@ -296,24 +268,372 @@ async function getMaduraiRates() {
 // GET /api/rates
 // ------------------------------------------------------
 
+// ======================================================
+// AURELIA - LIVE MADURAI GOLD & SILVER RATES
+// ======================================================
+
+const GOLD_RATES_URL =
+  "https://www.goodreturns.in/gold-rates/madurai.html";
+
+const SILVER_RATES_URL =
+  "https://www.goodreturns.in/silver-rates/madurai.html";
+
+
+// ======================================================
+// RATE CACHE
+// ======================================================
+
+// Backend refreshes the source every 1 minute
+const RATE_CACHE_TIME = 60 * 1000;
+
+let cachedRates = null;
+let lastRatesFetch = 0;
+
+
+// ======================================================
+// FETCH WEB PAGE
+// ======================================================
+
+async function fetchRatesPage(url) {
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/154.0.0.0 Safari/537.36",
+
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+
+      "Accept-Language":
+        "en-IN,en;q=0.9",
+    },
+  });
+
+
+  if (!response.ok) {
+    throw new Error(
+      `Rates source returned ${response.status}`
+    );
+  }
+
+
+  return await response.text();
+}
+
+
+// ======================================================
+// FETCH GOLD RATES
+// ======================================================
+
+async function fetchMaduraiGoldRates() {
+
+  const html =
+    await fetchRatesPage(GOLD_RATES_URL);
+
+
+  const $ = cheerio.load(html);
+
+
+  const pageText = $("body")
+    .text()
+    .replace(/\s+/g, " ")
+    .trim();
+
+
+  console.log(
+    "Fetching fresh Madurai gold rates..."
+  );
+
+
+  // 24K
+  const gold24Match = pageText.match(
+    /24K\s*Gold\s*\/?\s*g.*?₹\s*([\d,]+(?:\.\d+)?)/i
+  );
+
+
+  // 22K
+  const gold22Match = pageText.match(
+    /22K\s*Gold\s*\/?\s*g.*?₹\s*([\d,]+(?:\.\d+)?)/i
+  );
+
+
+  // 18K
+  const gold18Match = pageText.match(
+    /18K\s*Gold\s*\/?\s*g.*?₹\s*([\d,]+(?:\.\d+)?)/i
+  );
+
+
+  if (
+    !gold24Match ||
+    !gold22Match ||
+    !gold18Match
+  ) {
+    throw new Error(
+      "Unable to find gold rates on source page"
+    );
+  }
+
+
+  const gold24K = Number(
+    gold24Match[1].replace(/,/g, "")
+  );
+
+
+  const gold22K = Number(
+    gold22Match[1].replace(/,/g, "")
+  );
+
+
+  const gold18K = Number(
+    gold18Match[1].replace(/,/g, "")
+  );
+
+
+  // 14K is calculated from 24K
+  const gold14K =
+    gold24K * (14 / 24);
+
+
+  if (
+    !Number.isFinite(gold24K) ||
+    !Number.isFinite(gold22K) ||
+    !Number.isFinite(gold18K) ||
+    !Number.isFinite(gold14K)
+  ) {
+    throw new Error(
+      "Invalid gold rate values"
+    );
+  }
+
+
+  return {
+    k24: Number(gold24K.toFixed(2)),
+    k22: Number(gold22K.toFixed(2)),
+    k18: Number(gold18K.toFixed(2)),
+    k14: Number(gold14K.toFixed(2)),
+  };
+}
+
+
+// ======================================================
+// FETCH SILVER RATE
+// ======================================================
+
+async function fetchMaduraiSilverRate() {
+
+  const html =
+    await fetchRatesPage(SILVER_RATES_URL);
+
+
+  const $ = cheerio.load(html);
+
+
+  const pageText = $("body")
+    .text()
+    .replace(/\s+/g, " ")
+    .trim();
+
+
+  console.log(
+    "Fetching fresh Madurai silver rate..."
+  );
+
+
+  const silverMatch = pageText.match(
+    /Silver\s*\/?\s*g\s*₹\s*([\d,]+(?:\.\d+)?)/i
+  );
+
+
+  if (!silverMatch) {
+    throw new Error(
+      "Unable to find silver rate on source page"
+    );
+  }
+
+
+  const pureSilver = Number(
+    silverMatch[1].replace(/,/g, "")
+  );
+
+
+  if (!Number.isFinite(pureSilver)) {
+    throw new Error(
+      "Invalid silver rate"
+    );
+  }
+
+
+  // Sterling silver = 92.5%
+  const sterlingSilver =
+    pureSilver * 0.925;
+
+
+  return {
+    pure: Number(
+      pureSilver.toFixed(2)
+    ),
+
+    sterling: Number(
+      sterlingSilver.toFixed(2)
+    ),
+  };
+}
+
+
+// ======================================================
+// GET FRESH RATES
+// ======================================================
+
+async function getMaduraiRates() {
+
+  const now = Date.now();
+
+
+  // Use cache for 1 minute
+  if (
+    cachedRates &&
+    now - lastRatesFetch <
+      RATE_CACHE_TIME
+  ) {
+    return cachedRates;
+  }
+
+
+  try {
+
+    console.log(
+      "======================================"
+    );
+
+    console.log(
+      "Updating AURELIA Madurai metal rates..."
+    );
+
+
+    const [gold, silver] =
+      await Promise.all([
+        fetchMaduraiGoldRates(),
+        fetchMaduraiSilverRate(),
+      ]);
+
+
+    cachedRates = {
+      gold,
+
+      silver,
+
+      currency: "INR",
+
+      unit: "gram",
+
+      location: "Madurai",
+
+      source: "GoodReturns",
+
+      sourceUrl: {
+        gold: GOLD_RATES_URL,
+        silver: SILVER_RATES_URL,
+      },
+
+      updatedAt:
+        new Date().toISOString(),
+    };
+
+
+    lastRatesFetch = now;
+
+
+    console.log(
+      "AURELIA rates updated:"
+    );
+
+    console.log(
+      JSON.stringify(
+        cachedRates,
+        null,
+        2
+      )
+    );
+
+
+    console.log(
+      "======================================"
+    );
+
+
+    return cachedRates;
+
+  } catch (error) {
+
+    console.error(
+      "Madurai rates update failed:",
+      error.message
+    );
+
+
+    // Keep the previous successful rates
+    if (cachedRates) {
+
+      console.log(
+        "Using previous successful rates"
+      );
+
+      return cachedRates;
+    }
+
+
+    throw error;
+  }
+}
+
+
+// ======================================================
+// GET /api/rates
+// ======================================================
+
 app.get("/api/rates", async (req, res) => {
 
   try {
 
-    const rates = await getMaduraiRates();
+    const rates =
+      await getMaduraiRates();
+
+
+    res.setHeader(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate, proxy-revalidate"
+    );
+
+
+    res.setHeader(
+      "Pragma",
+      "no-cache"
+    );
+
+
+    res.setHeader(
+      "Expires",
+      "0"
+    );
+
 
     res.json(rates);
 
   } catch (error) {
 
-    console.error("Metal rate API error:", error);
+    console.error(
+      "Metal rate API error:",
+      error
+    );
 
 
     res.status(500).json({
+
       gold: null,
+
       silver: null,
 
       currency: "INR",
+
       unit: "gram",
 
       location: "Madurai",
