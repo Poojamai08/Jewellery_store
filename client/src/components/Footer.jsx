@@ -1,6 +1,65 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 function Footer() {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubscribe = async (e) => {
+    e.preventDefault();
+
+    setMessage("");
+    setError("");
+
+    const subscriberEmail = email.trim();
+
+    if (!subscriberEmail) {
+      setError("Please enter your email address.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const apiUrl = import.meta.env.VITE_API_URL;
+
+      const response = await fetch(
+        `${apiUrl}/api/newsletter/subscribe`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: subscriberEmail,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Unable to subscribe."
+        );
+      }
+
+      setMessage(data.message);
+      setEmail("");
+    } catch (err) {
+      console.error("Newsletter subscription error:", err);
+
+      setError(
+        err.message ||
+        "Unable to subscribe right now. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <footer className="bg-[#111111] text-white">
 
@@ -21,20 +80,43 @@ function Footer() {
               Discover new collections, timeless pieces and stories from AURELIA.
             </p>
 
-            <div className="mx-auto mt-8 flex max-w-md border-b border-white/30">
-              <input
-                type="email"
-                placeholder="Your email address"
-                className="min-w-0 flex-1 bg-transparent px-0 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none"
-              />
+            <form
+              onSubmit={handleSubscribe}
+              className="mx-auto mt-8 max-w-md"
+            >
+              <div className="flex border-b border-white/30">
 
-              <button
-                type="button"
-                className="px-2 text-[9px] uppercase tracking-[0.2em] text-[#c6a15b] transition hover:text-white"
-              >
-                Subscribe
-              </button>
-            </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Your email address"
+                  disabled={loading}
+                  className="min-w-0 flex-1 bg-transparent px-0 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none disabled:opacity-50"
+                />
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-2 text-[9px] uppercase tracking-[0.2em] text-[#c6a15b] transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading ? "Joining..." : "Subscribe"}
+                </button>
+
+              </div>
+
+              {message && (
+                <p className="mt-4 text-xs text-[#c6a15b]">
+                  {message}
+                </p>
+              )}
+
+              {error && (
+                <p className="mt-4 text-xs text-red-400">
+                  {error}
+                </p>
+              )}
+            </form>
 
           </div>
         </div>
@@ -126,28 +208,28 @@ function Footer() {
             </h3>
 
             <div className="mt-5 space-y-3">
-              <a
-                href="/contact"
+
+              <Link
+                to="/contact"
                 className="block text-sm text-white/60 transition hover:text-white"
               >
                 Contact Us
-              </a>
+              </Link>
 
-              <a
-                href="/shipping-delivery"
+              <Link
+                to="/shipping-delivery"
                 className="block text-sm text-white/60 transition hover:text-white"
               >
                 Shipping & Delivery
-              </a>
+              </Link>
 
-              <a
-                href="/return-exchange"
+              <Link
+                to="/return-exchange"
                 className="block text-sm text-white/60 transition hover:text-white"
               >
                 Returns & Exchange
-              </a>
+              </Link>
 
-              {/* Not created yet */}
               <Link
                 to="/"
                 className="block text-sm text-white/60 transition hover:text-white"
@@ -155,7 +237,6 @@ function Footer() {
                 Jewellery Care
               </Link>
 
-              {/* Not created yet */}
               <Link
                 to="/"
                 className="block text-sm text-white/60 transition hover:text-white"
@@ -192,7 +273,6 @@ function Footer() {
               </p>
 
             </div>
-
 
             {/* SOCIAL */}
             <div className="mt-6 flex gap-5">

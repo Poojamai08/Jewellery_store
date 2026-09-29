@@ -168,132 +168,355 @@ async function addBrevoContact(email) {
     });
 }
 
-async function sendNewCollectionEmail({
-    to,
-    product,
-}) {
-    const subject = `New Arrival at AURELIA — ${product.name}`;
+async function sendNewCollectionEmail({ to, product }) {
+    const subject = `AURELIA | Introducing ${product.name}`;
 
     const productImage =
         product.images?.[0] ||
-        "https://via.placeholder.com/600x700";
+        "https://via.placeholder.com/800x1000";
+
+    const shopUrl = `${process.env.FRONTEND_URL}/shop`;
+
+    const formattedPrice = Number(product.price).toLocaleString("en-IN");
 
     const html = `
-        <div style="
-            margin:0;
-            padding:40px 20px;
-            background:#f8f6f1;
-            font-family:Arial, sans-serif;
-            color:#171717;
-        ">
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>AURELIA — New Arrival</title>
+</head>
+
+<body style="
+    margin:0;
+    padding:0;
+    background:#f4f1eb;
+    font-family:Arial, Helvetica, sans-serif;
+    color:#1c1c1c;
+">
+
+<table
+    width="100%"
+    cellpadding="0"
+    cellspacing="0"
+    border="0"
+    style="background:#f4f1eb;"
+>
+<tr>
+<td align="center" style="padding:35px 15px;">
+
+    <!-- MAIN CARD -->
+    <table
+        width="100%"
+        cellpadding="0"
+        cellspacing="0"
+        border="0"
+        style="
+            max-width:650px;
+            background:#ffffff;
+        "
+    >
+
+        <!-- HEADER -->
+        <tr>
+        <td
+            align="center"
+            style="
+                padding:42px 30px 30px;
+                border-bottom:1px solid #eee9df;
+            "
+        >
+
             <div style="
-                max-width:600px;
-                margin:0 auto;
-                background:#ffffff;
-                padding:40px;
-                text-align:center;
+                font-family:Georgia, 'Times New Roman', serif;
+                font-size:30px;
+                letter-spacing:8px;
+                color:#171717;
             ">
+                AURELIA
+            </div>
 
-                <p style="
-                    font-size:11px;
-                    letter-spacing:4px;
-                    color:#a9874a;
-                    text-transform:uppercase;
-                    margin-bottom:20px;
-                ">
-                    AURELIA
-                </p>
+            <div style="
+                margin-top:10px;
+                font-size:9px;
+                letter-spacing:4px;
+                color:#a4864d;
+                text-transform:uppercase;
+            ">
+                FINE JEWELLERY
+            </div>
 
-                <h1 style="
-                    font-family:Georgia, serif;
-                    font-size:36px;
-                    font-weight:normal;
-                    margin:0 0 15px;
-                ">
-                    A New Arrival
-                </h1>
+        </td>
+        </tr>
 
-                <p style="
-                    color:#666;
-                    font-size:14px;
-                    line-height:1.7;
-                ">
-                    Discover the latest addition to the AURELIA collection.
-                </p>
 
-                <img
-                    src="${productImage}"
-                    alt="${product.name}"
-                    style="
-                        width:100%;
-                        max-width:500px;
-                        margin:25px 0;
-                        display:block;
-                    "
-                />
+        <!-- INTRO -->
+        <tr>
+        <td
+            align="center"
+            style="
+                padding:48px 35px 30px;
+            "
+        >
 
-                <p style="
+            <div style="
+                font-size:10px;
+                letter-spacing:4px;
+                color:#a4864d;
+                text-transform:uppercase;
+                margin-bottom:18px;
+            ">
+                A NEW ARRIVAL
+            </div>
+
+            <h1 style="
+                margin:0;
+                font-family:Georgia, 'Times New Roman', serif;
+                font-size:40px;
+                font-weight:normal;
+                line-height:1.2;
+                color:#171717;
+            ">
+                Something New<br />
+                Has Arrived
+            </h1>
+
+            <p style="
+                margin:22px auto 0;
+                max-width:460px;
+                font-size:14px;
+                line-height:1.8;
+                color:#777;
+            ">
+                Discover the latest addition to the AURELIA collection,
+                thoughtfully chosen for those who appreciate timeless
+                elegance and refined craftsmanship.
+            </p>
+
+        </td>
+        </tr>
+
+
+        <!-- PRODUCT IMAGE -->
+        <tr>
+        <td align="center" style="padding:5px 35px 30px;">
+
+            <img
+                src="${productImage}"
+                alt="${product.name}"
+                width="580"
+                style="
+                    display:block;
+                    width:100%;
+                    max-width:580px;
+                    height:auto;
+                    border:0;
+                "
+            />
+
+        </td>
+        </tr>
+
+
+        <!-- PRODUCT DETAILS -->
+        <tr>
+        <td
+            align="center"
+            style="
+                padding:10px 35px 45px;
+            "
+        >
+
+            <div style="
+                font-size:9px;
+                letter-spacing:4px;
+                color:#a4864d;
+                text-transform:uppercase;
+                margin-bottom:15px;
+            ">
+                ${product.category}
+            </div>
+
+            <h2 style="
+                margin:0;
+                font-family:Georgia, 'Times New Roman', serif;
+                font-size:30px;
+                font-weight:normal;
+                color:#171717;
+            ">
+                ${product.name}
+            </h2>
+
+            <div style="
+                margin-top:18px;
+                font-family:Georgia, 'Times New Roman', serif;
+                font-size:20px;
+                color:#222;
+            ">
+                ₹${formattedPrice}
+            </div>
+
+            ${product.metal
+            ? `
+            <div style="
+                margin-top:12px;
+                font-size:11px;
+                letter-spacing:2px;
+                color:#888;
+                text-transform:uppercase;
+            ">
+                ${product.metal}
+                ${product.weight
+                ? ` &nbsp;•&nbsp; ${product.weight} g`
+                : ""
+            }
+            </div>
+            `
+            : ""
+        }
+
+            <div style="
+                width:45px;
+                height:1px;
+                background:#c8ad78;
+                margin:25px auto;
+            "></div>
+
+            <p style="
+                margin:0 auto;
+                max-width:470px;
+                font-size:13px;
+                line-height:1.9;
+                color:#777;
+            ">
+                ${product.description}
+            </p>
+
+        </td>
+        </tr>
+
+
+        <!-- CTA -->
+        <tr>
+        <td align="center" style="padding:0 35px 55px;">
+
+            <a
+                href="${shopUrl}"
+                style="
+                    display:inline-block;
+                    padding:16px 38px;
+                    background:#171717;
+                    color:#ffffff;
+                    text-decoration:none;
                     font-size:10px;
                     letter-spacing:3px;
-                    color:#a9874a;
                     text-transform:uppercase;
-                ">
-                    ${product.category}
-                </p>
+                "
+            >
+                Discover The Collection
+            </a>
 
-                <h2 style="
-                    font-family:Georgia, serif;
-                    font-size:28px;
-                    font-weight:normal;
-                    margin:10px 0;
-                ">
-                    ${product.name}
-                </h2>
+        </td>
+        </tr>
 
-                <p style="
-                    font-size:18px;
-                    margin:15px 0;
-                ">
-                    ₹${Number(product.price).toLocaleString("en-IN")}
-                </p>
 
-                <p style="
-                    color:#666;
-                    font-size:14px;
-                    line-height:1.7;
-                ">
-                    ${product.description}
-                </p>
+        <!-- BRAND MESSAGE -->
+        <tr>
+        <td
+            align="center"
+            style="
+                padding:40px 35px;
+                background:#f8f6f1;
+                border-top:1px solid #eee9df;
+                border-bottom:1px solid #eee9df;
+            "
+        >
 
-                <div style="margin-top:30px;">
-                    <a
-                        href="${process.env.FRONTEND_URL}/shop"
-                        style="
-                            display:inline-block;
-                            padding:15px 30px;
-                            background:#171717;
-                            color:#ffffff;
-                            text-decoration:none;
-                            font-size:10px;
-                            letter-spacing:2px;
-                            text-transform:uppercase;
-                        "
-                    >
-                        Discover the Collection
-                    </a>
-                </div>
-
-                <p style="
-                    margin-top:40px;
-                    font-size:11px;
-                    color:#999;
-                ">
-                    With love from AURELIA
-                </p>
-
+            <div style="
+                font-family:Georgia, 'Times New Roman', serif;
+                font-size:22px;
+                color:#222;
+                margin-bottom:12px;
+            ">
+                Timeless. Refined. Yours.
             </div>
-        </div>
-    `;
+
+            <p style="
+                margin:0 auto;
+                max-width:430px;
+                font-size:12px;
+                line-height:1.8;
+                color:#888;
+            ">
+                Jewellery designed to become part of your story,
+                today and for generations to come.
+            </p>
+
+        </td>
+        </tr>
+
+
+        <!-- FOOTER -->
+        <tr>
+        <td
+            align="center"
+            style="
+                padding:35px 25px;
+                background:#171717;
+            "
+        >
+
+            <div style="
+                font-family:Georgia, 'Times New Roman', serif;
+                font-size:22px;
+                letter-spacing:5px;
+                color:#ffffff;
+            ">
+                AURELIA
+            </div>
+
+            <div style="
+                margin-top:10px;
+                font-size:8px;
+                letter-spacing:3px;
+                color:#b9a477;
+                text-transform:uppercase;
+            ">
+                FINE JEWELLERY
+            </div>
+
+            <p style="
+                margin:22px 0 0;
+                font-size:10px;
+                line-height:1.7;
+                color:#999;
+            ">
+                With love from AURELIA
+            </p>
+
+            <p style="
+                margin:15px 0 0;
+                font-size:9px;
+                color:#777;
+            ">
+                You are receiving this email because you subscribed
+                to AURELIA collection updates.
+            </p>
+
+        </td>
+        </tr>
+
+    </table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>
+`;
 
     return sendBrevoEmail({
         to,
@@ -685,6 +908,7 @@ async function sendOrderConfirmationEmail(order) {
 module.exports = {
     sendOrderConfirmationEmail,
     addBrevoContact,
-    sendNewCollectionEmail
+    sendNewCollectionEmail,
+    sendBrevoEmail
 };
 

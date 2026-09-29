@@ -18,6 +18,8 @@ import Contact from "./pages/Contact";
 import Wishlist from "./pages/Wishlist";
 import About from "./pages/About";
 import Collections from "./pages/Collections";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import MainLayout from "./layouts/MainLayout";
 
 function App() {
@@ -28,7 +30,7 @@ function App() {
         {/* Customer Pages */}
 
         <Route
-          path="/"
+          path="/home"
           element={
             <MainLayout>
               <Home />
@@ -129,6 +131,20 @@ function App() {
               <Collections />
             </MainLayout>
           } />
+
+        <Route
+          path="/"
+          element={
+            <Login />
+          }
+        />
+
+        <Route
+          path="/register"
+          element={
+            <Register />
+          }
+        />
 
         {/* Admin Pages */}
 

@@ -32,15 +32,6 @@ function Home() {
   const [productsLoading, setProductsLoading] = useState(true);
 
   /* =========================================
-     NEWSLETTER SUBSCRIPTION
-  ========================================= */
-
-  const [subscriberEmail, setSubscriberEmail] = useState("");
-  const [subscribeLoading, setSubscribeLoading] = useState(false);
-  const [subscribeMessage, setSubscribeMessage] = useState("");
-  const [subscribeError, setSubscribeError] = useState("");
-
-  /* =========================================
      AUTOMATIC HERO IMAGE CHANGE
      Every 5 seconds
   ========================================= */
@@ -140,63 +131,6 @@ function Home() {
     fetchProducts();
   }, []);
 
-  /* =========================================
-     NEWSLETTER SUBSCRIBE
-  ========================================= */
-
-  const handleSubscribe = async (e) => {
-    e.preventDefault();
-
-    setSubscribeMessage("");
-    setSubscribeError("");
-
-    const email = subscriberEmail.trim();
-
-    if (!email) {
-      setSubscribeError("Please enter your email address.");
-      return;
-    }
-
-    try {
-      setSubscribeLoading(true);
-      const apiUrl = import.meta.env.VITE_API_URL;
-
-      console.log("Newsletter API URL:", apiUrl);
-      const response = await fetch(
-        `${apiUrl}/api/newsletter/subscribe`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Unable to subscribe."
-        );
-      }
-
-      setSubscribeMessage(data.message);
-      setSubscriberEmail("");
-    } catch (error) {
-      console.error(
-        "Newsletter subscription error:",
-        error
-      );
-
-      setSubscribeError(
-        error.message ||
-        "Unable to subscribe right now. Please try again."
-      );
-    } finally {
-      setSubscribeLoading(false);
-    }
-  };
 
   /* =========================================
      CREATE DYNAMIC COLLECTIONS
@@ -597,83 +531,6 @@ function Home() {
           <p className="mt-5 text-[9px] font-semibold uppercase tracking-[0.4em] text-[#88837c]">
             Aurelia
           </p>
-
-        </div>
-
-      </section>
-
-      {/* =========================================
-          NEWSLETTER
-      ========================================= */}
-
-      <section className="bg-[#e9e3d9] px-6 py-20 sm:px-10 lg:px-16 lg:py-28">
-
-        <div className="mx-auto grid max-w-[1100px] gap-10 lg:grid-cols-2 lg:items-end">
-
-          <div>
-
-            <p className="text-[10px] font-semibold uppercase tracking-[0.4em] text-[#a9874a]">
-              Stay in the know
-            </p>
-
-            <h2 className="mt-4 font-serif text-4xl sm:text-5xl">
-              Enter the world of Aurelia.
-            </h2>
-
-          </div>
-
-          <div>
-
-            <p className="mb-6 text-sm leading-7 text-[#68635c]">
-              Receive new collection launches, jewellery stories and
-              private offers directly in your inbox.
-            </p>
-
-            <form
-              onSubmit={handleSubscribe}
-              className="border-b border-[#8e877d]"
-            >
-
-              <div className="flex">
-
-                <input
-                  type="email"
-                  value={subscriberEmail}
-                  onChange={(e) =>
-                    setSubscriberEmail(e.target.value)
-                  }
-                  placeholder="Your email address"
-                  disabled={subscribeLoading}
-                  className="w-full bg-transparent px-0 py-4 text-sm text-black placeholder:text-[#8e877d] focus:outline-none disabled:opacity-50"
-                />
-
-                <button
-                  type="submit"
-                  disabled={subscribeLoading}
-                  className="whitespace-nowrap px-0 py-4 text-[10px] font-semibold uppercase tracking-[0.25em] transition hover:text-[#a9874a] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {subscribeLoading
-                    ? "Subscribing..."
-                    : "Subscribe"}
-                </button>
-
-              </div>
-
-              {subscribeMessage && (
-                <p className="pb-3 pt-2 text-xs text-[#7a6338]">
-                  {subscribeMessage}
-                </p>
-              )}
-
-              {subscribeError && (
-                <p className="pb-3 pt-2 text-xs text-red-600">
-                  {subscribeError}
-                </p>
-              )}
-
-            </form>
-
-          </div>
 
         </div>
 
