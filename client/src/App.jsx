@@ -27,6 +27,9 @@ function App() {
     <BrowserRouter>
       <Routes>
 
+        {/* Authentication Landing */}
+        <Route path="/" element={<Login />} />
+
         {/* Customer Pages */}
 
         <Route
@@ -133,7 +136,7 @@ function App() {
           } />
 
         <Route
-          path="/"
+          path="/login"
           element={
             <Login />
           }
