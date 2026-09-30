@@ -14,20 +14,9 @@ function Login() {
     const handleLogin = async (e) => {
         e.preventDefault();
 
-        setError("");
-
-        if (!email || !password) {
-            setError("Please enter your email and password.");
-            return;
-        }
-
         try {
-            setLoading(true);
-
-            const apiUrl = import.meta.env.VITE_API_URL;
-
             const response = await fetch(
-                `${apiUrl}/api/auth/login`,
+                `${import.meta.env.VITE_API_URL}/api/auth/login`,
                 {
                     method: "POST",
                     headers: {
@@ -43,39 +32,23 @@ function Login() {
             const data = await response.json();
 
             if (!response.ok) {
-                setError(
-                    data.message ||
-                    "Invalid email or password."
-                );
-                return;
+                throw new Error(data.message || "Login failed");
             }
 
-            // Save authentication details
-            localStorage.setItem(
-                "aureliaToken",
-                data.token
-            );
+            // Save login information
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("user", JSON.stringify(data.user));
 
-            localStorage.setItem(
-                "aureliaUser",
-                JSON.stringify(data.user)
-            );
-
-            // Role based redirect
+            // Redirect based on role
             if (data.user.role === "ADMIN") {
-                navigate("/admin");
+                navigate("/admin/dashboard");
             } else {
                 navigate("/home");
             }
 
         } catch (error) {
-            console.error("Login error:", error);
-
-            setError(
-                "Unable to connect to the server. Please try again."
-            );
-        } finally {
-            setLoading(false);
+            console.error("Login Error:", error);
+            setError(error.message);
         }
     };
 

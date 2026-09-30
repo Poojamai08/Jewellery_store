@@ -27,6 +27,14 @@ function adminAuth(req, res, next) {
             process.env.JWT_SECRET
         );
 
+        // Only ADMIN users can access admin APIs
+        if (decoded.role !== "ADMIN") {
+            return res.status(403).json({
+                success: false,
+                message: "Admin access required",
+            });
+        }
+
         req.admin = decoded;
 
         next();
@@ -36,7 +44,7 @@ function adminAuth(req, res, next) {
 
         return res.status(401).json({
             success: false,
-            message: "Invalid or expired admin token",
+            message: "Invalid or expired token",
         });
     }
 }

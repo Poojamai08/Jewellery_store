@@ -82,7 +82,7 @@ async function main() {
   console.log("Products seeded successfully!");
 
   // -----------------------------
-  // Create Admin
+  // Create Admin User
   // -----------------------------
 
   const hashedPassword = await bcrypt.hash(
@@ -90,22 +90,24 @@ async function main() {
     10
   );
 
-  await prisma.admin.upsert({
+  await prisma.user.upsert({
     where: {
       email: "admin@aurelia.com",
     },
     update: {
       name: "AURELIA Admin",
       password: hashedPassword,
+      role: "ADMIN",
     },
     create: {
       name: "AURELIA Admin",
       email: "admin@aurelia.com",
       password: hashedPassword,
+      role: "ADMIN",
     },
   });
 
-  console.log("Admin created successfully!");
+  console.log("Admin user created successfully!");
 }
 
 main()
