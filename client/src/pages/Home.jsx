@@ -8,10 +8,10 @@ function Home() {
   ========================================= */
 
   const heroImages = [
-    "https://images.unsplash.com/photo-1511745564573-fec5d8b7e907?auto=format&fit=crop&w=2200&q=90",
-    "https://images.unsplash.com/photo-1603561596112-0a132b757442?auto=format&fit=crop&w=2200&q=90",
-    "https://images.unsplash.com/photo-1581000217146-03f3a628d19a?auto=format&fit=crop&w=2200&q=90",
-    "https://images.unsplash.com/photo-1603970402494-f97dac5a9b53?auto=format&fit=crop&w=2200&q=90",
+    "https://images.unsplash.com/photo-1511745564573-fec5d8b7e907?auto=format&fit=crop&w=1400&q=75",
+    "https://images.unsplash.com/photo-1603561596112-0a132b757442?auto=format&fit=crop&w=1400&q=75",
+    "https://images.unsplash.com/photo-1581000217146-03f3a628d19a?auto=format&fit=crop&w=1400&q=75",
+    "https://images.unsplash.com/photo-1603970402494-f97dac5a9b53?auto=format&fit=crop&w=1400&q=75",
   ];
 
   const [heroImage, setHeroImage] = useState(heroImages[0]);
