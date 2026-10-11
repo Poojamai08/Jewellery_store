@@ -166,7 +166,7 @@ function OrderSuccess() {
           </Link>
 
           <Link
-            to="/"
+            to="/home"
             className="inline-flex items-center justify-center border border-[#d7d0c6] bg-transparent px-8 py-4 text-[10px] font-semibold uppercase tracking-[0.25em] text-[#292722] transition duration-300 hover:border-[#171717]"
           >
             Back to Home

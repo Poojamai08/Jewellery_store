@@ -374,19 +374,17 @@ function Navbar() {
             <div className="space-y-1.5">
 
               <span
-                className={`block h-px w-5 bg-[#111111] transition ${
-                  menuOpen
+                className={`block h-px w-5 bg-[#111111] transition ${menuOpen
                     ? "translate-y-[4px] rotate-45"
                     : ""
-                }`}
+                  }`}
               />
 
               <span
-                className={`block h-px w-5 bg-[#111111] transition ${
-                  menuOpen
+                className={`block h-px w-5 bg-[#111111] transition ${menuOpen
                     ? "-rotate-45"
                     : ""
-                }`}
+                  }`}
               />
 
             </div>
@@ -398,23 +396,21 @@ function Navbar() {
           <nav className="hidden items-center gap-8 lg:flex">
 
             <Link
-              to="/"
-              className={`text-[10px] uppercase tracking-[0.2em] transition ${
-                isActive("/")
+              to="/home"
+              className={`text-[10px] uppercase tracking-[0.2em] transition ${isActive("/home")
                   ? "text-[#a9874a]"
                   : "text-[#333333] hover:text-[#a9874a]"
-              }`}
+                }`}
             >
               Home
             </Link>
 
             <Link
               to="/shop"
-              className={`text-[10px] uppercase tracking-[0.2em] transition ${
-                isActive("/shop")
+              className={`text-[10px] uppercase tracking-[0.2em] transition ${isActive("/shop")
                   ? "text-[#a9874a]"
                   : "text-[#333333] hover:text-[#a9874a]"
-              }`}
+                }`}
             >
               Shop
             </Link>
@@ -556,11 +552,10 @@ function Navbar() {
       {/* ================================================= */}
 
       <div
-        className={`overflow-hidden border-t border-[#e6e1d7] bg-[#f8f6f1] transition-all duration-300 ${
-          searchOpen
+        className={`overflow-hidden border-t border-[#e6e1d7] bg-[#f8f6f1] transition-all duration-300 ${searchOpen
             ? "max-h-[150px] opacity-100"
             : "max-h-0 opacity-0"
-        }`}
+          }`}
       >
 
         <div className="mx-auto max-w-[900px] px-5 py-6 sm:px-8">
@@ -632,11 +627,10 @@ function Navbar() {
       {/* ================================================= */}
 
       <div
-        className={`overflow-hidden border-t border-[#e6e1d7] bg-[#f8f6f1] transition-all duration-300 lg:hidden ${
-          menuOpen
+        className={`overflow-hidden border-t border-[#e6e1d7] bg-[#f8f6f1] transition-all duration-300 lg:hidden ${menuOpen
             ? "max-h-[400px] opacity-100"
             : "max-h-0 opacity-0"
-        }`}
+          }`}
       >
 
         <nav className="mx-auto max-w-[1400px] px-5 py-5">
