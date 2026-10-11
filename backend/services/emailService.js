@@ -900,6 +900,126 @@ async function sendOrderConfirmationEmail(order) {
     });
 }
 
+/* =========================================================
+   ORDER CANCELLATION EMAIL
+   ========================================================= */
+
+async function sendOrderCancellationEmail(order) {
+    const customer = order.customer;
+
+    const formatPrice = (amount) =>
+        Number(amount).toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>AURELIA Order Cancellation</title>
+    </head>
+
+    <body style="margin:0;padding:0;background:#f8f6f1;font-family:Arial,Helvetica,sans-serif;">
+
+        <div style="max-width:620px;margin:0 auto;padding:35px 18px;">
+
+            <div style="background:#171717;text-align:center;padding:30px;">
+                <div style="font-family:Georgia,serif;font-size:30px;letter-spacing:6px;color:#fff;">
+                    AURELIA
+                </div>
+                <div style="margin-top:8px;font-size:10px;letter-spacing:3px;color:#c6a15b;">
+                    FINE JEWELLERY
+                </div>
+            </div>
+
+            <div style="background:#fff;padding:35px 28px;">
+
+                <p style="font-size:10px;letter-spacing:3px;color:#a9874a;text-transform:uppercase;">
+                    Order Update
+                </p>
+
+                <h1 style="font-family:Georgia,serif;font-size:29px;font-weight:normal;color:#171717;">
+                    Order Cancelled
+                </h1>
+
+                <p style="font-size:14px;line-height:1.8;color:#777;">
+                    Dear ${escapeHtml(customer.name)}, your order cancellation
+                    has been processed successfully. Here are your order details
+                    for reference.
+                </p>
+
+                <div style="margin:25px 0;padding:20px;background:#f8f6f1;border-left:3px solid #c6a15b;">
+                    <p style="margin:0;color:#918b83;font-size:10px;letter-spacing:2px;">
+                        ORDER NUMBER
+                    </p>
+                    <p style="margin:8px 0 0;color:#171717;font-size:18px;font-weight:bold;">
+                        ${escapeHtml(order.orderNumber)}
+                    </p>
+                </div>
+
+                <table style="width:100%;border-collapse:collapse;">
+                    <tr>
+                        <td style="padding:12px 0;color:#777;border-bottom:1px solid #eee;">
+                            Order Status
+                        </td>
+                        <td style="padding:12px 0;text-align:right;color:#a33;border-bottom:1px solid #eee;">
+                            CANCELLED
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:12px 0;color:#777;">
+                            Order Total
+                        </td>
+                        <td style="padding:12px 0;text-align:right;color:#171717;font-weight:bold;">
+                            ₹${formatPrice(order.total)}
+                        </td>
+                    </tr>
+                </table>
+
+                <p style="margin-top:28px;font-size:13px;line-height:1.8;color:#777;">
+                    If you have already made a payment, any applicable refund
+                    will be handled according to the payment and refund policy.
+                    For assistance, please contact our customer care team.
+                </p>
+
+            </div>
+
+            <div style="background:#eee9e1;text-align:center;padding:25px;">
+                <div style="font-family:Georgia,serif;font-size:20px;letter-spacing:4px;color:#171717;">
+                    AURELIA
+                </div>
+                <p style="font-size:11px;color:#918b83;">
+                    Thank you for choosing AURELIA.
+                </p>
+            </div>
+
+        </div>
+    </body>
+    </html>
+    `;
+
+    return sendBrevoEmail({
+        to: customer.email,
+        subject: `AURELIA Order Cancelled — ${order.orderNumber}`,
+        html,
+    });
+}
+
+/* Escape dynamic text before inserting it into HTML. */
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+    })[character]);
+}
+
+
 
 /* =========================================================
    EXPORTS
@@ -909,6 +1029,7 @@ module.exports = {
     sendOrderConfirmationEmail,
     addBrevoContact,
     sendNewCollectionEmail,
-    sendBrevoEmail
+    sendBrevoEmail,
+    sendOrderCancellationEmail
 };
 

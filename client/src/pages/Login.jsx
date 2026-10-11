@@ -41,9 +41,9 @@ function Login() {
 
             // Redirect based on role
             if (data.user.role === "ADMIN") {
-                navigate("/admin/dashboard");
+                navigate("/admin/dashboard", { replace: true });
             } else {
-                navigate("/home");
+                navigate("/home", { replace: true });
             }
 
         } catch (error) {

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -16,18 +17,36 @@ function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        const token = localStorage.getItem("aureliaAdminToken");
-        const adminData = localStorage.getItem("aureliaAdmin");
+    // ================= AUTHENTICATION & DASHBOARD STATS =================
 
-        if (!token) {
-            navigate("/admin/login");
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        const adminData = localStorage.getItem("user");
+
+        if (!token || !adminData) {
+            navigate("/login", { replace: true });
             return;
         }
 
-        if (adminData) {
-            setAdmin(JSON.parse(adminData));
+        let parsedAdmin;
+
+        try {
+            parsedAdmin = JSON.parse(adminData);
+        } catch {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            navigate("/login", { replace: true });
+            return;
         }
+
+        if (
+            String(parsedAdmin.role || "").toUpperCase() !== "ADMIN"
+        ) {
+            navigate("/home", { replace: true });
+            return;
+        }
+
+        setAdmin(parsedAdmin);
 
         const fetchDashboardStats = async () => {
             try {
@@ -51,15 +70,16 @@ function AdminDashboard() {
                     );
                 }
 
-                setStats(data.stats);
+                if (data.stats) {
+                    setStats((previousStats) => ({
+                        ...previousStats,
+                        ...data.stats,
+                    }));
+                }
             } catch (error) {
-                console.error(
-                    "Dashboard Stats Error:",
-                    error
-                );
-
+                console.error("Dashboard Stats Error:", error);
                 setError(
-                    "Unable to load dashboard statistics."
+                    "Unable to load dashboard statistics. Please try again."
                 );
             } finally {
                 setLoading(false);
@@ -69,12 +89,63 @@ function AdminDashboard() {
         fetchDashboardStats();
     }, [navigate]);
 
-    const handleLogout = () => {
-        localStorage.removeItem("aureliaAdminToken");
-        localStorage.removeItem("aureliaAdmin");
+    // ================= LOGOUT =================
 
-        navigate("/admin/login");
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        navigate("/login", { replace: true });
     };
+
+    // ================= RETRY =================
+
+    const handleRetry = async () => {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            navigate("/login", { replace: true });
+            return;
+        }
+
+        try {
+            setLoading(true);
+            setError("");
+
+            const response = await fetch(
+                `${import.meta.env.VITE_API_URL}/api/admin/dashboard`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || "Failed to fetch dashboard"
+                );
+            }
+
+            if (data.stats) {
+                setStats((previousStats) => ({
+                    ...previousStats,
+                    ...data.stats,
+                }));
+            }
+        } catch (error) {
+            console.error("Dashboard Retry Error:", error);
+            setError(
+                "Unable to load dashboard statistics. Please try again."
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ================= STATISTICS CARDS =================
 
     const statCards = [
         {
@@ -116,9 +187,7 @@ function AdminDashboard() {
         },
         {
             label: "Revenue",
-            value: `₹${Number(stats.revenue).toLocaleString(
-                "en-IN"
-            )}`,
+            value: `₹${Number(stats.revenue || 0).toLocaleString("en-IN")}`,
             description: "Total order value",
             icon: (
                 <svg
@@ -153,19 +222,15 @@ function AdminDashboard() {
         },
     ];
 
+    // ================= PAGE UI =================
+
     return (
         <div className="min-h-screen bg-[#f5f2ec]">
-
-            {/* ================= HEADER ================= */}
+            {/* HEADER */}
 
             <header className="sticky top-0 z-40 border-b border-[#ded8ce] bg-[#171717] text-white">
-
                 <div className="mx-auto flex max-w-[1500px] items-center justify-between px-5 py-4 sm:px-8">
-
-                    {/* Brand */}
-
                     <div className="flex items-center gap-5">
-
                         <div>
                             <h1 className="font-serif text-2xl tracking-[0.22em]">
                                 AURELIA
@@ -181,23 +246,17 @@ function AdminDashboard() {
                         <span className="hidden text-[9px] uppercase tracking-[0.25em] text-white/50 md:block">
                             Control Centre
                         </span>
-
                     </div>
 
-                    {/* Admin */}
-
                     <div className="flex items-center gap-4">
-
                         <div className="hidden text-right sm:block">
-
                             <p className="text-[9px] uppercase tracking-[0.2em] text-white/40">
                                 Signed in as
                             </p>
 
                             <p className="mt-1 text-sm text-white">
-                                {admin?.name || "Admin"}
+                                {admin?.name || admin?.email || "Admin"}
                             </p>
-
                         </div>
 
                         <button
@@ -206,24 +265,17 @@ function AdminDashboard() {
                         >
                             Logout
                         </button>
-
                     </div>
-
                 </div>
-
             </header>
 
-
-            {/* ================= MAIN ================= */}
+            {/* MAIN CONTENT */}
 
             <main className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
-
-                {/* Page Intro */}
+                {/* PAGE INTRO */}
 
                 <div className="mb-10 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-
                     <div>
-
                         <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#a9874a]">
                             Overview
                         </p>
@@ -236,67 +288,50 @@ function AdminDashboard() {
                             Monitor your AURELIA jewellery catalogue,
                             orders, revenue and inventory from one place.
                         </p>
-
                     </div>
 
                     <div className="flex items-center gap-2 text-[9px] uppercase tracking-[0.2em] text-[#918b83]">
-
                         <span className="h-2 w-2 rounded-full bg-[#a9874a]" />
-
                         Store System Active
-
                     </div>
-
                 </div>
 
-
-                {/* ================= ERROR ================= */}
+                {/* ERROR MESSAGE */}
 
                 {error && (
-                    <div className="mb-8 flex items-center justify-between border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-600">
-
+                    <div className="mb-8 flex flex-col justify-between gap-3 border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-600 sm:flex-row sm:items-center">
                         <span>{error}</span>
 
                         <button
-                            onClick={() => window.location.reload()}
-                            className="text-[9px] font-semibold uppercase tracking-[0.2em] underline"
+                            onClick={handleRetry}
+                            disabled={loading}
+                            className="text-[9px] font-semibold uppercase tracking-[0.2em] underline disabled:opacity-50"
                         >
-                            Retry
+                            {loading ? "Loading..." : "Retry"}
                         </button>
-
                     </div>
                 )}
 
-
-                {/* ================= STATISTICS ================= */}
+                {/* STATISTICS */}
 
                 <section>
+                    <div className="mb-5">
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#a9874a]">
+                            Store Performance
+                        </p>
 
-                    <div className="mb-5 flex items-center justify-between">
-
-                        <div>
-                            <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#a9874a]">
-                                Store Performance
-                            </p>
-
-                            <h3 className="mt-1 font-serif text-2xl text-[#171717]">
-                                At a glance
-                            </h3>
-                        </div>
-
+                        <h3 className="mt-1 font-serif text-2xl text-[#171717]">
+                            At a glance
+                        </h3>
                     </div>
 
-
                     <div className="grid gap-px overflow-hidden border border-[#ddd7cd] bg-[#ddd7cd] sm:grid-cols-2 lg:grid-cols-4">
-
                         {statCards.map((card) => (
                             <div
                                 key={card.label}
                                 className="bg-white p-6 transition duration-300 hover:bg-[#faf8f4] sm:p-7"
                             >
-
                                 <div className="flex items-start justify-between">
-
                                     <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#918b83]">
                                         {card.label}
                                     </p>
@@ -304,31 +339,24 @@ function AdminDashboard() {
                                     <div className="flex h-9 w-9 items-center justify-center border border-[#ded8ce] text-[#a9874a]">
                                         {card.icon}
                                     </div>
-
                                 </div>
 
-                                <p className="mt-7 font-serif text-3xl text-[#171717] sm:text-4xl">
+                                <p className="mt-7 break-words font-serif text-3xl text-[#171717] sm:text-4xl">
                                     {loading ? "—" : card.value}
                                 </p>
 
                                 <p className="mt-2 text-[10px] text-[#918b83]">
                                     {card.description}
                                 </p>
-
                             </div>
                         ))}
-
                     </div>
-
                 </section>
 
-
-                {/* ================= MANAGEMENT ================= */}
+                {/* STORE MANAGEMENT */}
 
                 <section className="mt-12">
-
                     <div className="mb-6">
-
                         <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#a9874a]">
                             Management
                         </p>
@@ -336,24 +364,17 @@ function AdminDashboard() {
                         <h3 className="mt-1 font-serif text-2xl text-[#171717]">
                             Store Operations
                         </h3>
-
                     </div>
 
-
                     <div className="grid gap-6 lg:grid-cols-2">
-
-                        {/* PRODUCTS */}
+                        {/* PRODUCTS CARD */}
 
                         <div className="group relative overflow-hidden border border-[#ddd7cd] bg-white p-8 sm:p-10">
-
                             <div className="absolute right-0 top-0 h-32 w-32 translate-x-12 -translate-y-12 rounded-full border border-[#e5dfd5] transition duration-700 group-hover:scale-150" />
 
                             <div className="relative">
-
                                 <div className="flex items-start justify-between">
-
                                     <div>
-
                                         <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#a9874a]">
                                             Catalogue
                                         </p>
@@ -361,11 +382,9 @@ function AdminDashboard() {
                                         <h4 className="mt-3 font-serif text-3xl text-[#171717]">
                                             Products
                                         </h4>
-
                                     </div>
 
                                     <div className="flex h-11 w-11 items-center justify-center border border-[#ded8ce] text-[#a9874a]">
-
                                         <svg
                                             viewBox="0 0 24 24"
                                             className="h-5 w-5"
@@ -377,9 +396,7 @@ function AdminDashboard() {
                                             <path d="M4 7.5V16l8 5 8-5V7.5" />
                                             <path d="M12 12v9" />
                                         </svg>
-
                                     </div>
-
                                 </div>
 
                                 <p className="mt-5 max-w-md text-sm leading-7 text-[#77716a]">
@@ -389,9 +406,7 @@ function AdminDashboard() {
                                 </p>
 
                                 <button
-                                    onClick={() =>
-                                        navigate("/admin/products")
-                                    }
+                                    onClick={() => navigate("/admin/products")}
                                     className="mt-8 inline-flex items-center gap-4 bg-[#171717] px-6 py-3.5 text-[9px] font-semibold uppercase tracking-[0.25em] text-white transition duration-300 hover:bg-[#a9874a]"
                                 >
                                     Manage Products
@@ -406,26 +421,18 @@ function AdminDashboard() {
                                         <path d="M5 12h13" />
                                         <path d="m13 6 6 6-6 6" />
                                     </svg>
-
                                 </button>
-
                             </div>
-
                         </div>
 
-
-                        {/* ORDERS */}
+                        {/* ORDERS CARD */}
 
                         <div className="group relative overflow-hidden border border-[#ddd7cd] bg-[#171717] p-8 text-white sm:p-10">
-
                             <div className="absolute right-0 top-0 h-32 w-32 translate-x-12 -translate-y-12 rounded-full border border-white/10 transition duration-700 group-hover:scale-150" />
 
                             <div className="relative">
-
                                 <div className="flex items-start justify-between">
-
                                     <div>
-
                                         <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#c6a15b]">
                                             Sales
                                         </p>
@@ -433,11 +440,9 @@ function AdminDashboard() {
                                         <h4 className="mt-3 font-serif text-3xl">
                                             Orders
                                         </h4>
-
                                     </div>
 
                                     <div className="flex h-11 w-11 items-center justify-center border border-white/15 text-[#c6a15b]">
-
                                         <svg
                                             viewBox="0 0 24 24"
                                             className="h-5 w-5"
@@ -450,9 +455,7 @@ function AdminDashboard() {
                                             <path d="M9 11h6" />
                                             <path d="M9 15h4" />
                                         </svg>
-
                                     </div>
-
                                 </div>
 
                                 <p className="mt-5 max-w-md text-sm leading-7 text-white/55">
@@ -462,9 +465,7 @@ function AdminDashboard() {
                                 </p>
 
                                 <button
-                                    onClick={() =>
-                                        navigate("/admin/orders")
-                                    }
+                                    onClick={() => navigate("/admin/orders")}
                                     className="mt-8 inline-flex items-center gap-4 border border-white/20 px-6 py-3.5 text-[9px] font-semibold uppercase tracking-[0.25em] text-white transition duration-300 hover:border-[#c6a15b] hover:bg-[#c6a15b] hover:text-[#171717]"
                                 >
                                     Manage Orders
@@ -479,26 +480,17 @@ function AdminDashboard() {
                                         <path d="M5 12h13" />
                                         <path d="m13 6 6 6-6 6" />
                                     </svg>
-
                                 </button>
-
                             </div>
-
                         </div>
-
                     </div>
-
                 </section>
 
-
-                {/* ================= QUICK ACTIONS ================= */}
+                {/* QUICK ACTIONS */}
 
                 <section className="mt-12 border-t border-[#ddd7cd] pt-10">
-
                     <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
-
                         <div>
-
                             <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#a9874a]">
                                 Quick Actions
                             </p>
@@ -506,12 +498,9 @@ function AdminDashboard() {
                             <h3 className="mt-1 font-serif text-2xl text-[#171717]">
                                 Keep your store moving
                             </h3>
-
                         </div>
 
-
                         <div className="flex flex-wrap gap-3">
-
                             <button
                                 onClick={() =>
                                     navigate("/admin/products/new")
@@ -522,41 +511,27 @@ function AdminDashboard() {
                             </button>
 
                             <button
-                                onClick={() =>
-                                    navigate("/admin/orders")
-                                }
+                                onClick={() => navigate("/admin/orders")}
                                 className="border border-[#cfc8bd] bg-white px-5 py-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#292722] transition duration-300 hover:border-[#a9874a] hover:text-[#a9874a]"
                             >
                                 View Orders
                             </button>
-
                         </div>
-
                     </div>
-
                 </section>
 
-
-                {/* ================= FOOTER ================= */}
+                {/* FOOTER */}
 
                 <footer className="mt-16 border-t border-[#ddd7cd] pt-6">
-
                     <div className="flex flex-col justify-between gap-3 text-[9px] uppercase tracking-[0.18em] text-[#918b83] sm:flex-row">
-
                         <p>
                             © {new Date().getFullYear()} AURELIA Jewellery
                         </p>
 
-                        <p>
-                            Admin Control Centre
-                        </p>
-
+                        <p>Admin Control Centre</p>
                     </div>
-
                 </footer>
-
             </main>
-
         </div>
     );
 }
