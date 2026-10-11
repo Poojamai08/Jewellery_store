@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Mail, Phone } from "lucide-react";
 
 function Footer() {
   const [email, setEmail] = useState("");
@@ -25,6 +26,10 @@ function Footer() {
 
       const apiUrl = import.meta.env.VITE_API_URL;
 
+      if (!apiUrl) {
+        throw new Error("API URL is not configured.");
+      }
+
       const response = await fetch(
         `${apiUrl}/api/newsletter/subscribe`,
         {
@@ -46,7 +51,7 @@ function Footer() {
         );
       }
 
-      setMessage(data.message);
+      setMessage(data.message || "Successfully subscribed!");
       setEmail("");
     } catch (err) {
       console.error("Newsletter subscription error:", err);
@@ -62,12 +67,10 @@ function Footer() {
 
   return (
     <footer className="bg-[#111111] text-white">
-
       {/* NEWSLETTER */}
       <section className="border-b border-white/10">
         <div className="mx-auto max-w-[1400px] px-6 py-16 sm:px-8 lg:py-20">
           <div className="mx-auto max-w-2xl text-center">
-
             <p className="text-[9px] uppercase tracking-[0.35em] text-[#c6a15b]">
               The AURELIA Journal
             </p>
@@ -77,7 +80,8 @@ function Footer() {
             </h2>
 
             <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-white/50">
-              Discover new collections, timeless pieces and stories from AURELIA.
+              Discover new collections, timeless pieces and stories
+              from AURELIA.
             </p>
 
             <form
@@ -85,12 +89,14 @@ function Footer() {
               className="mx-auto mt-8 max-w-md"
             >
               <div className="flex border-b border-white/30">
-
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Your email address"
+                  aria-label="Your email address"
+                  autoComplete="email"
+                  required
                   disabled={loading}
                   className="min-w-0 flex-1 bg-transparent px-0 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none disabled:opacity-50"
                 />
@@ -102,39 +108,36 @@ function Footer() {
                 >
                   {loading ? "Joining..." : "Subscribe"}
                 </button>
-
               </div>
 
               {message && (
-                <p className="mt-4 text-xs text-[#c6a15b]">
+                <p
+                  role="status"
+                  className="mt-4 text-xs text-[#c6a15b]"
+                >
                   {message}
                 </p>
               )}
 
               {error && (
-                <p className="mt-4 text-xs text-red-400">
+                <p
+                  role="alert"
+                  className="mt-4 text-xs text-red-400"
+                >
                   {error}
                 </p>
               )}
             </form>
-
           </div>
         </div>
       </section>
 
-
       {/* MAIN FOOTER */}
       <div className="mx-auto max-w-[1400px] px-6 py-14 sm:px-8 lg:py-16">
-
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
-
           {/* BRAND */}
           <div className="lg:pr-10">
-
-            <Link
-              to="/"
-              className="inline-block"
-            >
+            <Link to="/" className="inline-block">
               <span className="block font-serif text-3xl tracking-[0.25em]">
                 AURELIA
               </span>
@@ -145,21 +148,18 @@ function Footer() {
             </Link>
 
             <p className="mt-6 max-w-xs text-sm leading-7 text-white/45">
-              Jewellery designed to celebrate life's most beautiful moments.
+              Jewellery designed to celebrate life's most beautiful
+              moments.
             </p>
-
           </div>
-
 
           {/* SHOP */}
           <div>
-
             <h3 className="text-[9px] uppercase tracking-[0.3em] text-[#c6a15b]">
               Shop
             </h3>
 
             <div className="mt-5 space-y-3">
-
               <Link
                 to="/shop"
                 className="block text-sm text-white/60 transition hover:text-white"
@@ -194,93 +194,107 @@ function Footer() {
               >
                 Bracelets
               </Link>
-
             </div>
-
           </div>
-
 
           {/* CUSTOMER CARE */}
           <div>
-
             <h3 className="text-[9px] uppercase tracking-[0.3em] text-[#c6a15b]">
               Customer Care
             </h3>
 
             <div className="mt-5 space-y-3">
-
               <Link
                 to="/contact"
-                className="block text-sm text-white/60 transition hover:text-white"
+                className="block text-sm text-white/60 transition hover:text-[#c6a15b]"
               >
                 Contact Us
               </Link>
 
               <Link
                 to="/shipping-delivery"
-                className="block text-sm text-white/60 transition hover:text-white"
+                className="block text-sm text-white/60 transition hover:text-[#c6a15b]"
               >
                 Shipping & Delivery
               </Link>
 
               <Link
                 to="/return-exchange"
-                className="block text-sm text-white/60 transition hover:text-white"
+                className="block text-sm text-white/60 transition hover:text-[#c6a15b]"
               >
                 Returns & Exchange
               </Link>
 
               <Link
-                to="/"
-                className="block text-sm text-white/60 transition hover:text-white"
+                to="/jewellery-care"
+                className="block text-sm text-white/60 transition hover:text-[#c6a15b]"
               >
                 Jewellery Care
               </Link>
 
               <Link
-                to="/"
-                className="block text-sm text-white/60 transition hover:text-white"
+                to="/faq"
+                className="block text-sm text-white/60 transition hover:text-[#c6a15b]"
               >
                 FAQs
               </Link>
-
             </div>
-
           </div>
-
 
           {/* CONTACT */}
           <div>
-
             <h3 className="text-[9px] uppercase tracking-[0.3em] text-[#c6a15b]">
               Contact
             </h3>
 
             <div className="mt-5 space-y-4 text-sm text-white/60">
-
-              <p>
+              <p className="leading-6">
                 Monday – Saturday
                 <br />
                 10:00 AM – 7:00 PM
               </p>
 
-              <p>
-                poojamai8499@gmail.com
-              </p>
+              {/* EMAIL - OPENS GMAIL COMPOSE */}
+              <a
+                href="https://mail.google.com/mail/?view=cm&fs=1&to=poojamai8499%40gmail.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Email AURELIA through Gmail"
+                className="group flex items-start gap-3 transition hover:text-[#c6a15b]"
+              >
+                <Mail
+                  size={17}
+                  strokeWidth={1.5}
+                  className="mt-0.5 shrink-0 text-[#c6a15b] transition group-hover:scale-110"
+                />
 
-              <p>
-                +91 93841 16088
-              </p>
+                <span className="break-all">
+                  poojamai8499@gmail.com
+                </span>
+              </a>
 
+              {/* PHONE - OPENS CALLING APPLICATION */}
+              <a
+                href="tel:+919384116088"
+                aria-label="Call AURELIA at +91 93841 16088"
+                className="group flex items-center gap-3 transition hover:text-[#c6a15b]"
+              >
+                <Phone
+                  size={17}
+                  strokeWidth={1.5}
+                  className="shrink-0 text-[#c6a15b] transition group-hover:scale-110"
+                />
+
+                <span>+91 93841 16088</span>
+              </a>
             </div>
 
-            {/* SOCIAL */}
+            {/* SOCIAL LINKS */}
             <div className="mt-6 flex gap-5">
-
               <a
                 href="#"
                 onClick={(e) => e.preventDefault()}
-                className="text-[9px] uppercase tracking-[0.2em] text-white/50 transition hover:text-white"
+                className="text-[9px] uppercase tracking-[0.2em] text-white/50 transition hover:text-[#c6a15b]"
               >
                 Instagram
               </a>
@@ -288,31 +302,23 @@ function Footer() {
               <a
                 href="#"
                 onClick={(e) => e.preventDefault()}
-                className="text-[9px] uppercase tracking-[0.2em] text-white/50 transition hover:text-white"
+                className="text-[9px] uppercase tracking-[0.2em] text-white/50 transition hover:text-[#c6a15b]"
               >
                 Facebook
               </a>
-
             </div>
-
           </div>
-
         </div>
-
       </div>
 
-
-      {/* BOTTOM */}
+      {/* BOTTOM FOOTER */}
       <div className="border-t border-white/10">
-
         <div className="mx-auto flex max-w-[1400px] flex-col gap-3 px-6 py-6 text-center sm:px-8 md:flex-row md:items-center md:justify-between md:text-left">
-
           <p className="text-[9px] uppercase tracking-[0.2em] text-white/30">
-            © 2026 AURELIA. All rights reserved.
+            © {new Date().getFullYear()} AURELIA. All rights reserved.
           </p>
 
           <div className="flex justify-center gap-6 text-[9px] uppercase tracking-[0.2em] text-white/30">
-
             <Link
               to="/privacy"
               className="transition hover:text-white"
@@ -326,13 +332,9 @@ function Footer() {
             >
               Terms
             </Link>
-
           </div>
-
         </div>
-
       </div>
-
     </footer>
   );
 }
