@@ -2,60 +2,74 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
+const INITIAL_FORM = {
+    name: "",
+    category: "Necklaces",
+    price: "",
+    metal: "22K Gold",
+    weight: "",
+    sku: "",
+    stock: "",
+    description: "",
+    image: "",
+};
+
 function AdminProductForm() {
     const navigate = useNavigate();
     const { id } = useParams();
-
     const isEditMode = Boolean(id);
 
-    const [form, setForm] = useState({
-        name: "",
-        category: "Necklaces",
-        price: "",
-        metal: "22K Gold",
-        weight: "",
-        sku: "",
-        stock: "",
-        description: "",
-        image: "",
-    });
-
+    const [form, setForm] = useState(INITIAL_FORM);
     const [loading, setLoading] = useState(false);
     const [pageLoading, setPageLoading] = useState(true);
     const [error, setError] = useState("");
+    const [imageStatus, setImageStatus] = useState("empty");
 
-    // ================= AUTHENTICATION & FETCH PRODUCT =================
+    // ================= AUTHENTICATION =================
+
+    const getAdminToken = () => {
+        const token = localStorage.getItem("token");
+        const storedUser = localStorage.getItem("user");
+
+        if (!token || !storedUser) {
+            navigate("/login", { replace: true });
+            return null;
+        }
+
+        try {
+            const user = JSON.parse(storedUser);
+
+            if (String(user.role).toUpperCase() !== "ADMIN") {
+                navigate("/home", { replace: true });
+                return null;
+            }
+
+            return token;
+        } catch {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            navigate("/login", { replace: true });
+            return null;
+        }
+    };
+
+    // ================= FETCH PRODUCT =================
 
     useEffect(() => {
         let cancelled = false;
 
-        const checkAuthAndFetchProduct = async () => {
-            const token = localStorage.getItem("token");
-            const storedUser = localStorage.getItem("user");
+        const loadProduct = async () => {
+            const token = getAdminToken();
 
-            if (!token || !storedUser) {
-                navigate("/login", { replace: true });
-                return;
-            }
-
-            try {
-                const user = JSON.parse(storedUser);
-
-                if (String(user.role).toUpperCase() !== "ADMIN") {
-                    navigate("/home", { replace: true });
-                    return;
-                }
-            } catch {
-                localStorage.removeItem("token");
-                localStorage.removeItem("user");
-                navigate("/login", { replace: true });
+            if (!token) {
+                setPageLoading(false);
                 return;
             }
 
             if (!isEditMode) {
-                if (!cancelled) {
-                    setPageLoading(false);
-                }
+                setPageLoading(false);
                 return;
             }
 
@@ -64,7 +78,7 @@ function AdminProductForm() {
                 setError("");
 
                 const response = await fetch(
-                    `${import.meta.env.VITE_API_URL}/api/products/${id}`,
+                    `${API_URL}/api/products/${id}`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -80,11 +94,15 @@ function AdminProductForm() {
                     );
                 }
 
-                const product = data.product;
+                const product = data.product || data;
 
-                if (!product) {
+                if (!product || !product.id) {
                     throw new Error("Product not found.");
                 }
+
+                const imageUrl = Array.isArray(product.images)
+                    ? product.images[0] || ""
+                    : "";
 
                 if (!cancelled) {
                     setForm({
@@ -96,12 +114,12 @@ function AdminProductForm() {
                         sku: product.sku || "",
                         stock: product.stock ?? "",
                         description: product.description || "",
-                        image: product.images?.[0] || "",
+                        image: imageUrl,
                     });
+
+                    setImageStatus(imageUrl ? "loading" : "empty");
                 }
             } catch (err) {
-                console.error("Fetch Product Error:", err);
-
                 if (!cancelled) {
                     setError(err.message || "Unable to load product.");
                 }
@@ -112,11 +130,13 @@ function AdminProductForm() {
             }
         };
 
-        checkAuthAndFetchProduct();
+        loadProduct();
 
         return () => {
             cancelled = true;
         };
+        // Authentication helper intentionally uses the current navigation.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, isEditMode, navigate]);
 
     // ================= FORM INPUTS =================
@@ -124,41 +144,42 @@ function AdminProductForm() {
     const handleChange = (event) => {
         const { name, value } = event.target;
 
-        setForm((currentForm) => ({
-            ...currentForm,
+        setForm((current) => ({
+            ...current,
             [name]: value,
         }));
+
+        if (name === "image") {
+            setImageStatus(value.trim() ? "loading" : "empty");
+        }
+
+        if (error) {
+            setError("");
+        }
     };
 
-    // ================= SUBMIT PRODUCT =================
+    const handleImageLoad = () => {
+        setImageStatus("loaded");
+    };
+
+    const handleImageError = () => {
+        setImageStatus("error");
+    };
+
+    // ================= SAVE PRODUCT =================
 
     const handleSubmit = async (event) => {
         event.preventDefault();
 
-        const token = localStorage.getItem("token");
-        const storedUser = localStorage.getItem("user");
+        const token = getAdminToken();
+        if (!token) return;
 
-        if (!token || !storedUser) {
-            navigate("/login", { replace: true });
-            return;
-        }
-
-        try {
-            const user = JSON.parse(storedUser);
-
-            if (String(user.role).toUpperCase() !== "ADMIN") {
-                navigate("/home", { replace: true });
-                return;
-            }
-        } catch {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            navigate("/login", { replace: true });
-            return;
-        }
+        setError("");
 
         if (
             !form.name.trim() ||
+            !form.category.trim() ||
+            !form.metal.trim() ||
             !form.sku.trim() ||
             !form.description.trim() ||
             form.price === "" ||
@@ -168,79 +189,106 @@ function AdminProductForm() {
             return;
         }
 
-        if (
-            !Number.isFinite(Number(form.price)) ||
-            Number(form.price) < 0
-        ) {
+        const price = Number(form.price);
+        const stock = Number(form.stock);
+        const weight =
+            form.weight === "" ? null : Number(form.weight);
+
+        if (!Number.isFinite(price) || price < 0) {
             setError("Please enter a valid product price.");
             return;
         }
 
-        if (
-            !Number.isInteger(Number(form.stock)) ||
-            Number(form.stock) < 0
-        ) {
+        if (!Number.isInteger(stock) || stock < 0) {
             setError("Stock must be a non-negative whole number.");
             return;
         }
 
         if (
-            form.weight !== "" &&
-            (!Number.isFinite(Number(form.weight)) ||
-                Number(form.weight) < 0)
+            weight !== null &&
+            (!Number.isFinite(weight) || weight < 0)
         ) {
             setError("Please enter a valid product weight.");
             return;
         }
 
+        const imageUrl = form.image.trim();
+
+        if (imageUrl) {
+            try {
+                const parsedUrl = new URL(imageUrl);
+
+                if (!["https:", "http:"].includes(parsedUrl.protocol)) {
+                    throw new Error();
+                }
+            } catch {
+                setError("Please enter a valid HTTP or HTTPS image URL.");
+                return;
+            }
+
+            if (imageStatus === "error") {
+                setError(
+                    "The image URL cannot be loaded. Please check the URL before saving."
+                );
+                return;
+            }
+        }
+
+        const productData = {
+            name: form.name.trim(),
+            category: form.category.trim(),
+            price,
+            metal: form.metal.trim(),
+            weight,
+            sku: form.sku.trim(),
+            stock,
+            description: form.description.trim(),
+            // Your backend stores image URLs in a PostgreSQL array.
+            images: imageUrl ? [imageUrl] : [],
+        };
+
         try {
             setLoading(true);
-            setError("");
 
-            const productData = {
-                name: form.name.trim(),
-                category: form.category,
-                price: Number(form.price),
-                metal: form.metal,
-                weight:
-                    form.weight === ""
-                        ? null
-                        : Number(form.weight),
-                sku: form.sku.trim(),
-                stock: Number(form.stock),
-                description: form.description.trim(),
-                images: form.image.trim()
-                    ? [form.image.trim()]
-                    : [],
-            };
-
-            const url = isEditMode
-                ? `${import.meta.env.VITE_API_URL}/api/products/${id}`
-                : `${import.meta.env.VITE_API_URL}/api/products`;
-
-            const method = isEditMode ? "PUT" : "POST";
-
-            const response = await fetch(url, {
-                method,
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(productData),
-            });
+            const response = await fetch(
+                isEditMode
+                    ? `${API_URL}/api/products/${id}`
+                    : `${API_URL}/api/products`,
+                {
+                    method: isEditMode ? "PUT" : "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(productData),
+                }
+            );
 
             const data = await response.json();
 
             if (response.status === 401 || response.status === 403) {
                 throw new Error(
-                    data.message ||
-                    "You are not authorized to perform this action."
+                    data.message || "You are not authorized to perform this action."
                 );
             }
 
             if (!response.ok) {
                 throw new Error(
                     data.message || "Failed to save product."
+                );
+            }
+
+            const savedProduct = data.product;
+
+            if (
+                imageUrl &&
+                savedProduct &&
+                Array.isArray(savedProduct.images) &&
+                !savedProduct.images.includes(imageUrl)
+            ) {
+                console.warn(
+                    "The API response does not contain the submitted image URL.",
+                    savedProduct.images
                 );
             }
 
@@ -263,24 +311,25 @@ function AdminProductForm() {
 
     if (pageLoading) {
         return (
-            <div className="min-h-screen bg-[#f5f2ec]">
-                <div className="flex min-h-screen flex-col items-center justify-center">
-                    <div className="h-9 w-9 animate-spin rounded-full border border-[#ded8ce] border-t-[#a9874a]" />
-
-                    <p className="mt-5 text-[9px] font-semibold uppercase tracking-[0.25em] text-[#918b83]">
-                        Loading Product
-                    </p>
-                </div>
+            <div className="flex min-h-screen flex-col items-center justify-center bg-[#f5f2ec]">
+                <div className="h-9 w-9 animate-spin rounded-full border border-[#ded8ce] border-t-[#a9874a]" />
+                <p className="mt-5 text-[9px] font-semibold uppercase tracking-[0.25em] text-[#918b83]">
+                    Loading Product
+                </p>
             </div>
         );
     }
+
+    const inputClass =
+        "mt-2 w-full border border-[#d8d2c9] bg-white px-4 py-3.5 text-sm outline-none transition placeholder:text-[#b2ada5] focus:border-[#a9874a]";
+
+    const labelClass =
+        "text-[9px] font-semibold uppercase tracking-[0.2em] text-[#77716a]";
 
     // ================= MAIN UI =================
 
     return (
         <div className="min-h-screen bg-[#f5f2ec]">
-            {/* HEADER */}
-
             <header className="sticky top-0 z-40 border-b border-[#2a2927] bg-[#171717] text-white">
                 <div className="mx-auto flex max-w-[1200px] items-center justify-between px-5 py-4 sm:px-8">
                     <button
@@ -291,7 +340,6 @@ function AdminProductForm() {
                         <h1 className="font-serif text-2xl tracking-[0.22em]">
                             AURELIA
                         </h1>
-
                         <p className="mt-1 text-[8px] font-medium uppercase tracking-[0.3em] text-[#c6a15b]">
                             Jewellery Administration
                         </p>
@@ -300,81 +348,52 @@ function AdminProductForm() {
                     <button
                         type="button"
                         onClick={() => navigate("/admin/products")}
-                        className="flex items-center gap-2 border border-white/20 px-4 py-2.5 text-[9px] font-semibold uppercase tracking-[0.2em] transition duration-300 hover:border-[#c6a15b] hover:bg-[#c6a15b] hover:text-[#171717]"
+                        className="border border-white/20 px-4 py-2.5 text-[9px] font-semibold uppercase tracking-[0.2em] transition hover:border-[#c6a15b] hover:bg-[#c6a15b] hover:text-[#171717]"
                     >
-                        <svg
-                            viewBox="0 0 24 24"
-                            className="h-3.5 w-3.5"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                        >
-                            <path d="M19 12H5" />
-                            <path d="m11 18-6-6 6-6" />
-                        </svg>
-
-                        Back to Products
+                        ← Back to Products
                     </button>
                 </div>
             </header>
-
-            {/* MAIN */}
 
             <main className="mx-auto max-w-[1200px] px-5 py-8 sm:px-8 sm:py-12">
                 <div className="mb-10">
                     <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#a9874a]">
                         Catalogue
                     </p>
-
-                    <h2 className="mt-3 font-serif text-4xl leading-tight text-[#171717] sm:text-5xl">
+                    <h2 className="mt-3 font-serif text-4xl text-[#171717] sm:text-5xl">
                         {isEditMode ? "Edit Product" : "Add Product"}
                     </h2>
-
                     <p className="mt-3 max-w-xl text-sm leading-6 text-[#77716a]">
                         {isEditMode
-                            ? "Update the details of this jewellery piece and keep your catalogue accurate."
-                            : "Create a new jewellery piece and add it to the AURELIA collection."}
+                            ? "Update the details of this jewellery piece."
+                            : "Create a new jewellery piece for the AURELIA collection."}
                     </p>
                 </div>
-
-                {/* ERROR */}
 
                 {error && (
                     <div
                         role="alert"
-                        className="mb-8 flex items-start justify-between gap-5 border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-600"
+                        className="mb-8 flex items-start justify-between gap-5 border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
                     >
-                        <div>
-                            <p className="font-medium">
-                                Something went wrong
-                            </p>
-
-                            <p className="mt-1 text-xs">{error}</p>
-                        </div>
-
+                        <p>{error}</p>
                         <button
                             type="button"
                             onClick={() => setError("")}
-                            className="text-xs underline"
+                            className="shrink-0 text-xs underline"
                         >
                             Dismiss
                         </button>
                     </div>
                 )}
 
-                {/* PRODUCT FORM */}
-
                 <form
                     onSubmit={handleSubmit}
                     className="border border-[#ddd7cd] bg-white"
                 >
-                    {/* FORM HEADER */}
-
                     <div className="border-b border-[#e2ddd5] bg-[#faf8f4] px-6 py-6 sm:px-10">
                         <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#a9874a]">
                             Product Information
                         </p>
-
                         <h3 className="mt-2 font-serif text-2xl text-[#171717]">
                             {isEditMode
                                 ? "Update jewellery details"
@@ -382,9 +401,7 @@ function AdminProductForm() {
                         </h3>
                     </div>
 
-                    <div className="px-6 py-8 sm:px-10 sm:py-10">
-                        {/* BASIC INFORMATION */}
-
+                    <div className="space-y-12 px-6 py-8 sm:px-10 sm:py-10">
                         <section>
                             <p className="mb-6 text-[9px] font-semibold uppercase tracking-[0.25em] text-[#918b83]">
                                 01 — Basic Information
@@ -392,290 +409,236 @@ function AdminProductForm() {
 
                             <div className="grid gap-6 md:grid-cols-2">
                                 <div className="md:col-span-2">
-                                    <label
-                                        htmlFor="name"
-                                        className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#77716a]"
-                                    >
-                                        Product Name
+                                    <label htmlFor="name" className={labelClass}>
+                                        Product Name *
                                     </label>
-
                                     <input
                                         id="name"
-                                        type="text"
                                         name="name"
                                         value={form.name}
                                         onChange={handleChange}
+                                        className={inputClass}
                                         placeholder="Royal Temple Necklace"
                                         required
-                                        className="mt-2 w-full border border-[#d8d2c9] bg-white px-4 py-3.5 text-sm outline-none transition placeholder:text-[#b2ada5] focus:border-[#a9874a]"
                                     />
                                 </div>
 
                                 <div>
-                                    <label
-                                        htmlFor="category"
-                                        className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#77716a]"
-                                    >
-                                        Category
+                                    <label htmlFor="category" className={labelClass}>
+                                        Category *
                                     </label>
-
                                     <select
                                         id="category"
                                         name="category"
                                         value={form.category}
                                         onChange={handleChange}
-                                        className="mt-2 w-full border border-[#d8d2c9] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#a9874a]"
+                                        className={inputClass}
+                                        required
                                     >
-                                        <option value="Necklaces">
-                                            Necklaces
-                                        </option>
-                                        <option value="Earrings">
-                                            Earrings
-                                        </option>
+                                        <option value="Necklaces">Necklaces</option>
+                                        <option value="Earrings">Earrings</option>
                                         <option value="Rings">Rings</option>
-                                        <option value="Bracelets">
-                                            Bracelets
-                                        </option>
+                                        <option value="Bracelets">Bracelets</option>
+                                        <option value="Pendants">Pendants</option>
+                                        <option value="Bangles">Bangles</option>
                                     </select>
                                 </div>
 
                                 <div>
-                                    <label
-                                        htmlFor="metal"
-                                        className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#77716a]"
-                                    >
-                                        Metal
+                                    <label htmlFor="metal" className={labelClass}>
+                                        Metal *
                                     </label>
-
                                     <select
                                         id="metal"
                                         name="metal"
                                         value={form.metal}
                                         onChange={handleChange}
-                                        className="mt-2 w-full border border-[#d8d2c9] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#a9874a]"
+                                        className={inputClass}
+                                        required
                                     >
-                                        <option value="22K Gold">
-                                            22K Gold
-                                        </option>
-                                        <option value="18K Gold">
-                                            18K Gold
-                                        </option>
-                                        <option value="Diamond">
-                                            Diamond
-                                        </option>
-                                        <option value="Silver">
-                                            Silver
-                                        </option>
+                                        <option value="22K Gold">22K Gold</option>
+                                        <option value="18K Gold">18K Gold</option>
+                                        <option value="Diamond">Diamond</option>
+                                        <option value="Silver">Silver</option>
+                                        <option value="Rose Gold">Rose Gold</option>
+                                        <option value="Platinum">Platinum</option>
                                     </select>
                                 </div>
                             </div>
                         </section>
 
-                        {/* PRICING & INVENTORY */}
-
-                        <section className="mt-12 border-t border-[#e8e3db] pt-10">
+                        <section className="border-t border-[#e8e3db] pt-10">
                             <p className="mb-6 text-[9px] font-semibold uppercase tracking-[0.25em] text-[#918b83]">
                                 02 — Pricing & Inventory
                             </p>
 
                             <div className="grid gap-6 md:grid-cols-3">
                                 <div>
-                                    <label
-                                        htmlFor="price"
-                                        className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#77716a]"
-                                    >
-                                        Price (₹)
+                                    <label htmlFor="price" className={labelClass}>
+                                        Price (₹) *
                                     </label>
-
-                                    <div className="relative mt-2">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-[#918b83]">
-                                            ₹
-                                        </span>
-
-                                        <input
-                                            id="price"
-                                            type="number"
-                                            name="price"
-                                            value={form.price}
-                                            onChange={handleChange}
-                                            placeholder="125000"
-                                            min="0"
-                                            step="0.01"
-                                            required
-                                            className="w-full border border-[#d8d2c9] bg-white py-3.5 pl-9 pr-4 text-sm outline-none placeholder:text-[#b2ada5] focus:border-[#a9874a]"
-                                        />
-                                    </div>
+                                    <input
+                                        id="price"
+                                        name="price"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={form.price}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                        placeholder="125000"
+                                        required
+                                    />
                                 </div>
 
                                 <div>
-                                    <label
-                                        htmlFor="weight"
-                                        className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#77716a]"
-                                    >
+                                    <label htmlFor="weight" className={labelClass}>
                                         Weight (grams)
                                     </label>
-
-                                    <div className="relative mt-2">
-                                        <input
-                                            id="weight"
-                                            type="number"
-                                            name="weight"
-                                            value={form.weight}
-                                            onChange={handleChange}
-                                            placeholder="32.5"
-                                            min="0"
-                                            step="0.01"
-                                            className="w-full border border-[#d8d2c9] bg-white px-4 py-3.5 pr-12 text-sm outline-none placeholder:text-[#b2ada5] focus:border-[#a9874a]"
-                                        />
-
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] uppercase tracking-[0.15em] text-[#918b83]">
-                                            g
-                                        </span>
-                                    </div>
+                                    <input
+                                        id="weight"
+                                        name="weight"
+                                        type="number"
+                                        min="0"
+                                        step="0.001"
+                                        value={form.weight}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                        placeholder="32.5"
+                                    />
                                 </div>
 
                                 <div>
-                                    <label
-                                        htmlFor="stock"
-                                        className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#77716a]"
-                                    >
-                                        Stock Quantity
+                                    <label htmlFor="stock" className={labelClass}>
+                                        Stock Quantity *
                                     </label>
-
                                     <input
                                         id="stock"
-                                        type="number"
                                         name="stock"
-                                        value={form.stock}
-                                        onChange={handleChange}
-                                        placeholder="10"
+                                        type="number"
                                         min="0"
                                         step="1"
+                                        value={form.stock}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                        placeholder="10"
                                         required
-                                        className="mt-2 w-full border border-[#d8d2c9] bg-white px-4 py-3.5 text-sm outline-none placeholder:text-[#b2ada5] focus:border-[#a9874a]"
                                     />
                                 </div>
 
                                 <div className="md:col-span-3">
-                                    <label
-                                        htmlFor="sku"
-                                        className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#77716a]"
-                                    >
-                                        SKU
+                                    <label htmlFor="sku" className={labelClass}>
+                                        SKU *
                                     </label>
-
                                     <input
                                         id="sku"
-                                        type="text"
                                         name="sku"
                                         value={form.sku}
                                         onChange={handleChange}
+                                        className={inputClass}
                                         placeholder="AUR-NEC-005"
                                         required
-                                        className="mt-2 w-full border border-[#d8d2c9] bg-white px-4 py-3.5 font-mono text-sm uppercase tracking-wide outline-none placeholder:font-sans placeholder:text-[#b2ada5] focus:border-[#a9874a]"
                                     />
-
-                                    <p className="mt-2 text-[10px] text-[#918b83]">
-                                        Use a unique SKU for inventory
-                                        identification.
-                                    </p>
                                 </div>
                             </div>
                         </section>
 
-                        {/* PRODUCT IMAGE */}
-
-                        <section className="mt-12 border-t border-[#e8e3db] pt-10">
+                        <section className="border-t border-[#e8e3db] pt-10">
                             <p className="mb-6 text-[9px] font-semibold uppercase tracking-[0.25em] text-[#918b83]">
-                                03 — Product Media
+                                03 — Product Image
                             </p>
 
-                            <label
-                                htmlFor="image"
-                                className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#77716a]"
-                            >
-                                Product Image URL
+                            <label htmlFor="image" className={labelClass}>
+                                Image URL
                             </label>
 
                             <input
                                 id="image"
-                                type="url"
                                 name="image"
+                                type="url"
                                 value={form.image}
                                 onChange={handleChange}
-                                placeholder="https://example.com/product-image.jpg"
-                                className="mt-2 w-full border border-[#d8d2c9] bg-white px-4 py-3.5 text-sm outline-none placeholder:text-[#b2ada5] focus:border-[#a9874a]"
+                                className={inputClass}
+                                placeholder="https://example.com/jewellery.jpg"
                             />
 
-                            <p className="mt-2 text-[10px] text-[#918b83]">
-                                Paste a publicly accessible image URL.
+                            <p className="mt-2 text-xs text-[#918b83]">
+                                Paste a direct, publicly accessible image URL.
                             </p>
 
-                            {form.image && (
-                                <div className="mt-6 border border-[#e2ddd5] bg-[#faf8f4] p-4">
-                                    <p className="mb-3 text-[8px] font-semibold uppercase tracking-[0.2em] text-[#918b83]">
-                                        Image Preview
+                            <div className="mt-5 flex min-h-64 items-center justify-center border border-[#ddd7cd] bg-[#faf8f4] p-4">
+                                {!form.image.trim() ? (
+                                    <p className="text-sm text-[#918b83]">
+                                        Your image preview will appear here.
                                     </p>
+                                ) : (
+                                    <div className="w-full text-center">
+                                        {imageStatus === "loading" && (
+                                            <p className="mb-3 text-xs text-[#918b83]">
+                                                Loading image preview...
+                                            </p>
+                                        )}
 
-                                    <div className="flex min-h-56 items-center justify-center overflow-hidden bg-[#eeeae3] sm:h-72">
                                         <img
-                                            src={form.image}
+                                            key={form.image.trim()}
+                                            src={form.image.trim()}
                                             alt="Product preview"
-                                            className="h-56 w-full object-contain sm:h-72"
-                                            onError={(event) => {
-                                                event.currentTarget.style.visibility =
-                                                    "hidden";
-                                            }}
-                                            onLoad={(event) => {
-                                                event.currentTarget.style.visibility =
-                                                    "visible";
-                                            }}
+                                            className={`mx-auto max-h-72 max-w-full object-contain ${imageStatus === "error"
+                                                    ? "hidden"
+                                                    : ""
+                                                }`}
+                                            onLoad={handleImageLoad}
+                                            onError={handleImageError}
                                         />
+
+                                        {imageStatus === "error" && (
+                                            <div className="py-8">
+                                                <p className="text-sm font-medium text-red-600">
+                                                    Image could not be loaded.
+                                                </p>
+                                                <p className="mt-2 text-xs text-[#918b83]">
+                                                    Check the URL and use a direct image link.
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {imageStatus === "loaded" && (
+                                            <p className="mt-3 text-xs text-green-700">
+                                                Image preview loaded successfully.
+                                            </p>
+                                        )}
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </section>
 
-                        {/* DESCRIPTION */}
-
-                        <section className="mt-12 border-t border-[#e8e3db] pt-10">
+                        <section className="border-t border-[#e8e3db] pt-10">
                             <p className="mb-6 text-[9px] font-semibold uppercase tracking-[0.25em] text-[#918b83]">
-                                04 — Product Description
+                                04 — Description
                             </p>
 
-                            <label
-                                htmlFor="description"
-                                className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#77716a]"
-                            >
-                                Description
+                            <label htmlFor="description" className={labelClass}>
+                                Product Description *
                             </label>
-
                             <textarea
                                 id="description"
                                 name="description"
                                 value={form.description}
                                 onChange={handleChange}
-                                placeholder="Describe the jewellery piece, craftsmanship, finish and design..."
                                 rows={6}
+                                className={inputClass}
+                                placeholder="Describe the jewellery piece, craftsmanship and design..."
                                 required
-                                className="mt-2 w-full resize-y border border-[#d8d2c9] bg-white px-4 py-3.5 text-sm leading-6 outline-none placeholder:text-[#b2ada5] focus:border-[#a9874a]"
                             />
-
-                            <p className="mt-2 text-[10px] text-[#918b83]">
-                                Provide a clear description that helps
-                                customers understand the piece.
-                            </p>
                         </section>
                     </div>
-
-                    {/* FORM ACTIONS */}
 
                     <div className="flex flex-col gap-3 border-t border-[#e2ddd5] bg-[#faf8f4] px-6 py-6 sm:flex-row sm:justify-end sm:px-10">
                         <button
                             type="button"
                             onClick={() => navigate("/admin/products")}
                             disabled={loading}
-                            className="border border-[#d1cbc1] bg-white px-8 py-3.5 text-[9px] font-semibold uppercase tracking-[0.25em] transition hover:border-[#171717] disabled:cursor-not-allowed disabled:opacity-50"
+                            className="border border-[#d1cbc1] bg-white px-8 py-3.5 text-[9px] font-semibold uppercase tracking-[0.25em] hover:border-[#171717] disabled:opacity-50"
                         >
                             Cancel
                         </button>
@@ -683,43 +646,20 @@ function AdminProductForm() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="inline-flex items-center justify-center gap-3 bg-[#171717] px-8 py-3.5 text-[9px] font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-[#a9874a] disabled:cursor-not-allowed disabled:bg-[#918b83]"
+                            className="bg-[#171717] px-8 py-3.5 text-[9px] font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-[#a9874a] disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            {loading ? (
-                                <>
-                                    <span className="h-3 w-3 animate-spin rounded-full border border-white/30 border-t-white" />
-                                    Saving
-                                </>
-                            ) : (
-                                <>
-                                    {isEditMode
-                                        ? "Update Product"
-                                        : "Add Product"}
-
-                                    <svg
-                                        viewBox="0 0 24 24"
-                                        className="h-3.5 w-3.5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1.5"
-                                    >
-                                        <path d="M5 12h13" />
-                                        <path d="m13 6 6 6-6 6" />
-                                    </svg>
-                                </>
-                            )}
+                            {loading
+                                ? "Saving..."
+                                : isEditMode
+                                    ? "Update Product"
+                                    : "Save Product"}
                         </button>
                     </div>
                 </form>
 
-                {/* FOOTER */}
-
                 <footer className="mt-12 border-t border-[#ddd7cd] pt-6">
                     <div className="flex flex-col justify-between gap-3 text-[9px] uppercase tracking-[0.18em] text-[#918b83] sm:flex-row">
-                        <p>
-                            © {new Date().getFullYear()} AURELIA Jewellery
-                        </p>
-
+                        <p>© {new Date().getFullYear()} AURELIA Jewellery</p>
                         <p>Product Catalogue</p>
                     </div>
                 </footer>
