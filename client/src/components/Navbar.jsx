@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { LogOut } from "lucide-react";
 
 function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -16,6 +17,15 @@ function Navbar() {
 
   const location = useLocation();
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("aureliaToken");
+    localStorage.removeItem("aureliaUser");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    navigate("/login", { replace: true });
+  };
 
   // ======================================================
   // CART
@@ -375,15 +385,15 @@ function Navbar() {
 
               <span
                 className={`block h-px w-5 bg-[#111111] transition ${menuOpen
-                    ? "translate-y-[4px] rotate-45"
-                    : ""
+                  ? "translate-y-[4px] rotate-45"
+                  : ""
                   }`}
               />
 
               <span
                 className={`block h-px w-5 bg-[#111111] transition ${menuOpen
-                    ? "-rotate-45"
-                    : ""
+                  ? "-rotate-45"
+                  : ""
                   }`}
               />
 
@@ -398,8 +408,8 @@ function Navbar() {
             <Link
               to="/home"
               className={`text-[10px] uppercase tracking-[0.2em] transition ${isActive("/home")
-                  ? "text-[#a9874a]"
-                  : "text-[#333333] hover:text-[#a9874a]"
+                ? "text-[#a9874a]"
+                : "text-[#333333] hover:text-[#a9874a]"
                 }`}
             >
               Home
@@ -408,8 +418,8 @@ function Navbar() {
             <Link
               to="/shop"
               className={`text-[10px] uppercase tracking-[0.2em] transition ${isActive("/shop")
-                  ? "text-[#a9874a]"
-                  : "text-[#333333] hover:text-[#a9874a]"
+                ? "text-[#a9874a]"
+                : "text-[#333333] hover:text-[#a9874a]"
                 }`}
             >
               Shop
@@ -541,6 +551,19 @@ function Navbar() {
 
             </Link>
 
+            {/* LOGOUT */}
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              title="Logout"
+              aria-label="Logout"
+              className="flex h-10 w-10 items-center justify-center
+             text-[#333333] transition hover:text-[#a9874a]"
+            >
+              <LogOut size={18} strokeWidth={1.5} />
+            </button>
+
           </div>
 
         </div>
@@ -553,8 +576,8 @@ function Navbar() {
 
       <div
         className={`overflow-hidden border-t border-[#e6e1d7] bg-[#f8f6f1] transition-all duration-300 ${searchOpen
-            ? "max-h-[150px] opacity-100"
-            : "max-h-0 opacity-0"
+          ? "max-h-[150px] opacity-100"
+          : "max-h-0 opacity-0"
           }`}
       >
 
@@ -628,8 +651,8 @@ function Navbar() {
 
       <div
         className={`overflow-hidden border-t border-[#e6e1d7] bg-[#f8f6f1] transition-all duration-300 lg:hidden ${menuOpen
-            ? "max-h-[400px] opacity-100"
-            : "max-h-0 opacity-0"
+          ? "max-h-[400px] opacity-100"
+          : "max-h-0 opacity-0"
           }`}
       >
 
