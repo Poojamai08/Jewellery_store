@@ -265,11 +265,11 @@ function Footer() {
               </p>
 
               <p>
-                hello@aurelia.com
+                poojamai8499@gmail.com
               </p>
 
               <p>
-                +91 00000 00000
+                +91 93841 16088
               </p>
 
             </div>
