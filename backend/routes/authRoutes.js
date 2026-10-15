@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 
 const prisma = require("../lib/prisma");
 const { sendBrevoEmail } = require("../services/emailService");
-
+const loginLimiter = require("../middleware/loginLimiter");
 const router = express.Router();
 
 
@@ -208,7 +208,7 @@ router.post("/register", async (req, res) => {
 // LOGIN
 // ========================================
 
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
     try {
         const {
             email,
@@ -230,6 +230,9 @@ router.post("/login", async (req, res) => {
                 email: cleanEmail,
             },
         });
+
+        console.log("Login email:", cleanEmail);
+        console.log("User found:", Boolean(user));
 
         // Don't reveal whether email exists
         if (!user) {
